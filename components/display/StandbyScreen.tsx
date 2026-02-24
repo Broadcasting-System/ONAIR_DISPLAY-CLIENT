@@ -5,6 +5,10 @@ interface StandbyScreenProps {
 }
 
 export const StandbyScreen = ({ isAudioPlaying = false, isFullscreen = false }: StandbyScreenProps) => {
+  const contentAreaStyle = isFullscreen
+    ? { top: 0, left: 0, right: 0, bottom: 0 }
+    : { top: "140px", left: "58px", right: "58px", bottom: "40px" }
+
   return (
     <div className="relative w-full h-[100dvh] bg-[#101010] overflow-hidden">
       <div className="pointer-events-none absolute inset-0 opacity-20" style={{ zIndex: 0 }}>
@@ -16,65 +20,55 @@ export const StandbyScreen = ({ isAudioPlaying = false, isFullscreen = false }: 
         />
       </div>
 
-      <div
-        className="absolute bg-white overflow-hidden rounded-sm"
-        style={
-          isFullscreen
-            ? { top: 0, left: 0, right: 0, bottom: 0 }
-            : { top: "140px", left: "58px", right: "58px", bottom: "40px" }
-        }
-      >
-        <div className="flex flex-col items-center justify-center w-full h-full">
+      <div className="absolute flex items-center justify-center" style={contentAreaStyle}>
+        <img
+          src="/방송 종료.png"
+          alt="방송 종료"
+          style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }}
+          draggable={false}
+        />
+      </div>
+
+      {isAudioPlaying ? (
+        <div
+          className="absolute flex flex-col items-center gap-4"
+          style={{ bottom: "48px", left: 0, right: 0 }}
+        >
           <p
             style={{
-              fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', sans-serif",
-              fontWeight: 800,
-              fontSize: "64px",
-              color: "#000000",
-              lineHeight: 1.1,
+              fontFamily: "'Pretendard Variable', 'Pretendard', sans-serif",
+              fontWeight: 700,
+              fontSize: "20px",
+              color: "rgba(255,255,255,0.9)",
             }}
           >
-            방송 화면
+            🔊 오디오 방송 송출 중...
           </p>
-
-          {isAudioPlaying ? (
-            <div className="mt-14 flex flex-col items-center gap-6">
-              <p
+          <div className="flex items-end gap-2 h-16">
+            {[85, 40, 95, 30, 75, 50, 90, 20, 80].map((height, i) => (
+              <div
+                key={i}
+                className="w-3 rounded-t-sm bg-white"
                 style={{
-                  fontFamily: "'Pretendard Variable', 'Pretendard', sans-serif",
-                  fontWeight: 700,
-                  fontSize: "20px",
-                  color: "#111111",
-                }}
-              >
-                🔊 오디오 방송 송출 중...
-              </p>
-              <div className="flex items-end gap-2 h-16">
-                {[85, 40, 95, 30, 75, 50, 90, 20, 80].map((height, i) => (
-                  <div
-                    key={i}
-                    className="w-3 rounded-t-sm bg-neutral-800"
-                    style={{
-                      height: `${height}%`,
-                      animation: `displayBounce ${0.5 + (i % 3) * 0.25}s ease-in-out infinite alternate`,
-                    }}
-                  />
-                ))}
-              </div>
-              <style
-                dangerouslySetInnerHTML={{
-                  __html: `
-                    @keyframes displayBounce {
-                      0% { opacity: 0.3; transform: scaleY(0.3); }
-                      100% { opacity: 1; transform: scaleY(1); }
-                    }
-                  `,
+                  height: `${height}%`,
+                  opacity: 0.7,
+                  animation: `displayBounce ${0.5 + (i % 3) * 0.25}s ease-in-out infinite alternate`,
                 }}
               />
-            </div>
-          ) : null}
+            ))}
+          </div>
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+                @keyframes displayBounce {
+                  0% { opacity: 0.2; transform: scaleY(0.3); }
+                  100% { opacity: 0.8; transform: scaleY(1); }
+                }
+              `,
+            }}
+          />
         </div>
-      </div>
+      ) : null}
     </div>
   )
 }

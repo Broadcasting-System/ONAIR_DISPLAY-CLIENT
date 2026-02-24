@@ -38,12 +38,7 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen }: ContentRende
       <>
         <StandbyScreen isAudioPlaying isFullscreen={isFullscreen} />
         {content.url ? (
-          <audio
-            src={content.url}
-            autoPlay
-            onEnded={onEnded}
-            className="hidden"
-          />
+          <audio src={content.url} autoPlay onEnded={onEnded} className="hidden" />
         ) : null}
       </>
     )
@@ -52,34 +47,53 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen }: ContentRende
   return (
     <div
       key={contentKey}
-      className="flex items-center justify-center w-full h-[100dvh] bg-black overflow-hidden"
+      className="relative flex items-center justify-center w-full h-[100dvh] bg-[#101010] overflow-hidden"
     >
-      {content.type === 'image' && content.url ? (
+      <div className="pointer-events-none absolute inset-0 opacity-20">
         <img
-          src={content.url}
-          alt="Broadcast Image"
-          className="w-full h-full object-contain"
+          src="/onair_background.png"
+          alt=""
+          className="absolute w-full h-full object-cover"
           draggable={false}
         />
-      ) : null}
+      </div>
 
-      {content.type === 'video' && content.url ? (
-        <video
-          src={content.url}
-          autoPlay
-          onEnded={onEnded}
-          className="w-full h-full object-contain focus:outline-none"
-        />
-      ) : null}
+      <div
+        className="relative z-10"
+        style={{
+          aspectRatio: "16 / 9",
+          width: "min(100%, calc(100dvh * 16 / 9))",
+          maxWidth: "100%",
+          maxHeight: "100%",
+        }}
+      >
+        {content.type === 'image' && content.url ? (
+          <img
+            src={content.url}
+            alt="Broadcast Image"
+            className="w-full h-full object-contain"
+            draggable={false}
+          />
+        ) : null}
 
-      {content.type === 'presentation' && content.urls && content.urls.length > 0 ? (
-        <img
-          src={content.urls[currentSlideIndex]}
-          alt={`Broadcast Slide ${currentSlideIndex + 1}`}
-          className="w-full h-full object-contain"
-          draggable={false}
-        />
-      ) : null}
+        {content.type === 'video' && content.url ? (
+          <video
+            src={content.url}
+            autoPlay
+            onEnded={onEnded}
+            className="w-full h-full object-contain focus:outline-none"
+          />
+        ) : null}
+
+        {content.type === 'presentation' && content.urls && content.urls.length > 0 ? (
+          <img
+            src={content.urls[currentSlideIndex]}
+            alt={`Broadcast Slide ${currentSlideIndex + 1}`}
+            className="w-full h-full object-contain"
+            draggable={false}
+          />
+        ) : null}
+      </div>
     </div>
   )
 }
