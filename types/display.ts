@@ -11,6 +11,8 @@ export interface WebSocketMessage {
   command: 'display'
   type: ContentType
   fileId: string
+  url?: string
   urls?: string[]
   duration?: number
 }
+
