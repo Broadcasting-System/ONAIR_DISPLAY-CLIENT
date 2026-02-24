@@ -7,7 +7,7 @@ const BUTTON_PATH =
 
 export const Header = ({ onFullscreen }: HeaderProps) => {
   return (
-    <header className="absolute top-0 left-0 w-full z-50 flex items-start justify-between px-8 pt-[52px]">
+    <header className="absolute top-0 left-0 w-full z-50 flex items-start justify-between px-14 pt-[36px]">
       <div
         className="flex flex-col gap-1"
         style={{ textShadow: "0 0 100px rgba(255, 0, 4, 0.3)" }}
@@ -16,7 +16,7 @@ export const Header = ({ onFullscreen }: HeaderProps) => {
           style={{
             fontFamily: "'Orbitron', sans-serif",
             fontWeight: 500,
-            fontSize: "70px",
+            fontSize: "46px",
             lineHeight: 1,
             color: "#ffffff",
             letterSpacing: "0.02em",
