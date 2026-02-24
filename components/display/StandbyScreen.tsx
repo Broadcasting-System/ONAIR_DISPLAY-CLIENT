@@ -6,10 +6,7 @@ interface StandbyScreenProps {
 export const StandbyScreen = ({ isAudioPlaying = false }: StandbyScreenProps) => {
   return (
     <div className="relative w-full h-[100dvh] bg-[#101010] overflow-hidden">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-20"
-        style={{ zIndex: 0 }}
-      >
+      <div className="pointer-events-none absolute inset-0 opacity-20" style={{ zIndex: 0 }}>
         <img
           src="/onair_background.png"
           alt=""
@@ -19,13 +16,12 @@ export const StandbyScreen = ({ isAudioPlaying = false }: StandbyScreenProps) =>
       </div>
 
       <div
-        className="absolute bg-white overflow-hidden"
+        className="absolute bg-white overflow-hidden rounded-sm"
         style={{
-          top: "164px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "calc(100% - 116px)",
-          bottom: "0",
+          top: "140px",
+          left: "58px",
+          right: "58px",
+          bottom: "40px",
         }}
       >
         <div className="flex flex-col items-center justify-center w-full h-full">
@@ -33,7 +29,7 @@ export const StandbyScreen = ({ isAudioPlaying = false }: StandbyScreenProps) =>
             style={{
               fontFamily: "'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', sans-serif",
               fontWeight: 800,
-              fontSize: "100px",
+              fontSize: "64px",
               color: "#000000",
               lineHeight: 1.1,
             }}
@@ -41,19 +37,19 @@ export const StandbyScreen = ({ isAudioPlaying = false }: StandbyScreenProps) =>
             방송 화면
           </p>
 
-          {isAudioPlaying && (
-            <div className="mt-16 flex flex-col items-center gap-6">
+          {isAudioPlaying ? (
+            <div className="mt-14 flex flex-col items-center gap-6">
               <p
                 style={{
                   fontFamily: "'Pretendard Variable', 'Pretendard', sans-serif",
                   fontWeight: 700,
-                  fontSize: "22px",
+                  fontSize: "20px",
                   color: "#111111",
                 }}
               >
                 🔊 오디오 방송 송출 중...
               </p>
-              <div className="flex items-end gap-2 h-20">
+              <div className="flex items-end gap-2 h-16">
                 {[85, 40, 95, 30, 75, 50, 90, 20, 80].map((height, i) => (
                   <div
                     key={i}
@@ -76,7 +72,7 @@ export const StandbyScreen = ({ isAudioPlaying = false }: StandbyScreenProps) =>
                 }}
               />
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
