@@ -1,9 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 interface StandbyScreenProps {
   isAudioPlaying?: boolean
+  isFullscreen?: boolean
 }
 
-export const StandbyScreen = ({ isAudioPlaying = false }: StandbyScreenProps) => {
+export const StandbyScreen = ({ isAudioPlaying = false, isFullscreen = false }: StandbyScreenProps) => {
   return (
     <div className="relative w-full h-[100dvh] bg-[#101010] overflow-hidden">
       <div className="pointer-events-none absolute inset-0 opacity-20" style={{ zIndex: 0 }}>
@@ -17,12 +18,11 @@ export const StandbyScreen = ({ isAudioPlaying = false }: StandbyScreenProps) =>
 
       <div
         className="absolute bg-white overflow-hidden rounded-sm"
-        style={{
-          top: "140px",
-          left: "58px",
-          right: "58px",
-          bottom: "40px",
-        }}
+        style={
+          isFullscreen
+            ? { top: 0, left: 0, right: 0, bottom: 0 }
+            : { top: "140px", left: "58px", right: "58px", bottom: "40px" }
+        }
       >
         <div className="flex flex-col items-center justify-center w-full h-full">
           <p

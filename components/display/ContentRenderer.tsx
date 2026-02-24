@@ -6,81 +6,80 @@ import { StandbyScreen } from './StandbyScreen'
 interface ContentRendererProps {
   content: DisplayContent | null
   onEnded: () => void
+  isFullscreen: boolean
 }
 
-export const ContentRenderer = ({ content, onEnded }: ContentRendererProps) => {
+export const ContentRenderer = ({ content, onEnded, isFullscreen }: ContentRendererProps) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
   const contentKey = content ? `${content.type}-${content.url ?? content.urls?.[0] ?? ''}` : 'standby'
 
-  // Presentation auto-slide logic
   useEffect(() => {
-    if (content?.type === 'presentation' && content.urls && content.duration) {
-      const interval = setInterval(() => {
-        setCurrentSlideIndex((prev) => {
-          if (prev + 1 >= (content.urls?.length || 0)) {
-            clearInterval(interval)
-            onEnded()
-            return prev
-          }
-          return prev + 1
-        })
-      }, content.duration * 1000)
-
-      return () => clearInterval(interval)
-    }
+    if (content?.type !== 'presentation' || !content.urls || !content.duration) return
+    const intervalId = setInterval(() => {
+      setCurrentSlideIndex((prev) => {
+        const next = prev + 1
+        if (next >= (content.urls?.length ?? 0)) {
+          clearInterval(intervalId)
+          onEnded()
+          return prev
+        }
+        return next
+      })
+    }, content.duration * 1000)
+    return () => clearInterval(intervalId)
   }, [content, onEnded])
 
-  // Standby screen fallback
   if (!content) {
-    return <StandbyScreen />
+    return <StandbyScreen isFullscreen={isFullscreen} />
   }
 
-  // Audio rendering with standby visualizer
   if (content.type === 'audio') {
     return (
       <>
-        <StandbyScreen isAudioPlaying />
-        {content.url && (
+        <StandbyScreen isAudioPlaying isFullscreen={isFullscreen} />
+        {content.url ? (
           <audio
             src={content.url}
             autoPlay
             onEnded={onEnded}
             className="hidden"
           />
-        )}
+        ) : null}
       </>
     )
   }
 
-  // Visual content renderer
   return (
-    <div key={contentKey} className="flex items-center justify-center w-full h-screen bg-black overflow-hidden relative z-0">
-      {content.type === 'image' && content.url && (
+    <div
+      key={contentKey}
+      className="flex items-center justify-center w-full h-[100dvh] bg-black overflow-hidden"
+    >
+      {content.type === 'image' && content.url ? (
         <img
           src={content.url}
           alt="Broadcast Image"
           className="w-full h-full object-contain"
           draggable={false}
         />
-      )}
+      ) : null}
 
-      {content.type === 'video' && content.url && (
+      {content.type === 'video' && content.url ? (
         <video
           src={content.url}
           autoPlay
           onEnded={onEnded}
           className="w-full h-full object-contain focus:outline-none"
         />
-      )}
+      ) : null}
 
-      {content.type === 'presentation' && content.urls && content.urls.length > 0 && (
+      {content.type === 'presentation' && content.urls && content.urls.length > 0 ? (
         <img
           src={content.urls[currentSlideIndex]}
           alt={`Broadcast Slide ${currentSlideIndex + 1}`}
           className="w-full h-full object-contain"
           draggable={false}
         />
-      )}
+      ) : null}
     </div>
   )
 }
