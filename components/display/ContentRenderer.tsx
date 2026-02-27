@@ -46,24 +46,54 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
   }, [content, onEnded, isArmed])
 
   useEffect(() => {
-    if (isArmed && content?.type === 'video' && content.serverTimestamp && videoRef.current) {
-      const video = videoRef.current
-      const elapsedSec = (Date.now() - content.serverTimestamp) / 1000
+    if (!isArmed || content?.type !== 'video' || !content.url || !content.serverTimestamp || !videoRef.current) {
+      return
+    }
 
-      const syncVideo = async () => {
-        try {
-          video.currentTime = elapsedSec
-          await video.play()
-        } catch (err) {
-          console.error('Auto-play with sound blocked or sync failed', err)
-          video.muted = true
-          video.play().catch(e => console.error('Even muted play failed', e))
-        }
+    const video = videoRef.current
+    let syncInterval: NodeJS.Timeout
+
+    const syncVideo = () => {
+      if (!video) return
+
+      const now = Date.now()
+      const elapsedSec = (now - content.serverTimestamp!) / 1000
+
+      if (video.duration && elapsedSec >= video.duration) {
+        onEnded()
+        return
       }
 
-      syncVideo()
+      if (video.paused && !video.ended) {
+        console.log('[Video] Forcing playback resume')
+        video.play().catch(() => { })
+      }
+
+      const drift = Math.abs(video.currentTime - elapsedSec)
+      if (drift > 2) {
+        console.log(`[Video] Drift detected: ${drift.toFixed(2)}s. Re-syncing...`)
+        video.currentTime = elapsedSec
+      }
     }
-  }, [content, isArmed])
+
+    const onCanPlay = () => {
+      const elapsedSec = (Date.now() - content.serverTimestamp!) / 1000
+      video.currentTime = elapsedSec
+      video.play().catch((err) => {
+        console.warn('[Video] Play blocked, muting...', err)
+        video.muted = true
+        video.play().catch(() => { })
+      })
+    }
+
+    video.addEventListener('canplay', onCanPlay)
+    syncInterval = setInterval(syncVideo, 2000)
+
+    return () => {
+      video.removeEventListener('canplay', onCanPlay)
+      clearInterval(syncInterval)
+    }
+  }, [content, isArmed, onEnded])
 
   if (!content || content.type === 'standby') {
     return <StandbyScreen isFullscreen={isFullscreen} />
