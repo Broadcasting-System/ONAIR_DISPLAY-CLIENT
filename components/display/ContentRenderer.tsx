@@ -1,5 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { DisplayContent } from '@/types/display'
 import { StandbyScreen } from './StandbyScreen'
 
@@ -9,27 +8,63 @@ interface ContentRendererProps {
   isFullscreen: boolean
 }
 
+const calculateSlideIndex = (content: DisplayContent | null) => {
+  if (content?.type !== 'presentation' || !content.urls || !content.duration || !content.serverTimestamp) {
+    return 0
+  }
+  const elapsedMs = Date.now() - content.serverTimestamp
+  const totalDurationMs = content.duration * 1000
+  const index = Math.floor(elapsedMs / totalDurationMs)
+  return index < content.urls.length ? index : content.urls.length - 1
+}
+
 export const ContentRenderer = ({ content, onEnded, isFullscreen }: ContentRendererProps) => {
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(() => calculateSlideIndex(content))
+  const videoRef = useRef<HTMLVideoElement>(null)
   const contentKey = content ? `${content.type}-${content.url ?? content.urls?.[0] ?? ''}` : 'standby'
 
   useEffect(() => {
-    if (content?.type !== 'presentation' || !content.urls || !content.duration) return
-    const intervalId = setInterval(() => {
-      setCurrentSlideIndex((prev) => {
-        const next = prev + 1
-        if (next >= (content.urls?.length ?? 0)) {
-          clearInterval(intervalId)
-          onEnded()
-          return prev
-        }
-        return next
-      })
-    }, content.duration * 1000)
+    if (content?.type !== 'presentation' || !content.urls || !content.duration || !content.serverTimestamp) {
+      return
+    }
+
+    const syncSlides = () => {
+      const elapsedMs = Date.now() - content.serverTimestamp!
+      const totalDurationMs = content.duration! * 1000
+      const index = Math.floor(elapsedMs / totalDurationMs)
+
+      if (index >= content.urls!.length) {
+        onEnded()
+      } else {
+        setCurrentSlideIndex((prev) => prev !== index ? index : prev)
+      }
+    }
+
+    const intervalId = setInterval(syncSlides, 1000)
     return () => clearInterval(intervalId)
   }, [content, onEnded])
 
-  if (!content) {
+  useEffect(() => {
+    if (content?.type === 'video' && content.serverTimestamp && videoRef.current) {
+      const video = videoRef.current
+      const elapsedSec = (Date.now() - content.serverTimestamp) / 1000
+
+      const syncVideo = async () => {
+        try {
+          video.currentTime = elapsedSec
+          await video.play()
+        } catch (err) {
+          console.error('Auto-play with sound blocked or sync failed', err)
+          video.muted = true
+          video.play().catch(e => console.error('Even muted play failed', e))
+        }
+      }
+
+      syncVideo()
+    }
+  }, [content])
+
+  if (!content || content.type === 'standby') {
     return <StandbyScreen isFullscreen={isFullscreen} />
   }
 
@@ -85,10 +120,8 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen }: ContentRende
 
           {content.type === 'video' && content.url ? (
             <video
+              ref={videoRef}
               src={content.url}
-              autoPlay
-              muted
-              playsInline
               onEnded={onEnded}
               className="w-full h-full object-contain focus:outline-none"
             />

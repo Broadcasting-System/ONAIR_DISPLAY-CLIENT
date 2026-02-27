@@ -1,10 +1,11 @@
-export type ContentType = 'image' | 'video' | 'presentation' | 'audio'
+export type ContentType = 'image' | 'video' | 'presentation' | 'audio' | 'standby'
 
 export interface DisplayContent {
   type: ContentType
   url?: string
   urls?: string[]
   duration?: number
+  serverTimestamp?: number
 }
 
 export interface WebSocketMessage {
@@ -14,5 +15,5 @@ export interface WebSocketMessage {
   url?: string
   urls?: string[]
   duration?: number
+  serverTimestamp?: number
 }
-

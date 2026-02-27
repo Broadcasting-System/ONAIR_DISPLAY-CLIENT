@@ -47,6 +47,7 @@ export const useWebSocket = () => {
                 url: finalUrl,
                 urls: message.urls || [],
                 duration: message.duration,
+                serverTimestamp: message.serverTimestamp,
               }
             })
           }
