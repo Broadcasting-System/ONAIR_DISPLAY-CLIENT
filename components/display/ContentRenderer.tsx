@@ -55,13 +55,21 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
           video.currentTime = elapsedSec
           await video.play()
         } catch (err) {
-          console.error('Auto-play with sound blocked or sync failed', err)
           video.muted = true
-          video.play().catch(e => console.error('Even muted play failed', e))
+          video.play().catch(() => { })
         }
       }
 
       syncVideo()
+
+      // Passive stall monitor: Only try to resume if paused mid-stream
+      const stallCheck = setInterval(() => {
+        if (video.paused && !video.ended && video.readyState >= 2) {
+          video.play().catch(() => { })
+        }
+      }, 5000)
+
+      return () => clearInterval(stallCheck)
     }
   }, [content, isArmed])
 
