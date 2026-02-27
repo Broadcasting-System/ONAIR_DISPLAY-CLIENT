@@ -24,7 +24,7 @@ export const StandbyScreen = ({ isAudioPlaying = false, isFullscreen = false }: 
         <img
           src="/방송 종료.png"
           alt="방송 종료"
-          style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
           draggable={false}
         />
       </div>
