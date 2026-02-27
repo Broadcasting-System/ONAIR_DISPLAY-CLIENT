@@ -6,6 +6,7 @@ interface ContentRendererProps {
   content: DisplayContent | null
   onEnded: () => void
   isFullscreen: boolean
+  isArmed: boolean
 }
 
 const calculateSlideIndex = (content: DisplayContent | null) => {
@@ -18,13 +19,13 @@ const calculateSlideIndex = (content: DisplayContent | null) => {
   return index < content.urls.length ? index : content.urls.length - 1
 }
 
-export const ContentRenderer = ({ content, onEnded, isFullscreen }: ContentRendererProps) => {
+export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: ContentRendererProps) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(() => calculateSlideIndex(content))
   const videoRef = useRef<HTMLVideoElement>(null)
   const contentKey = content ? `${content.type}-${content.url ?? content.urls?.[0] ?? ''}` : 'standby'
 
   useEffect(() => {
-    if (content?.type !== 'presentation' || !content.urls || !content.duration || !content.serverTimestamp) {
+    if (!isArmed || content?.type !== 'presentation' || !content.urls || !content.duration || !content.serverTimestamp) {
       return
     }
 
@@ -42,10 +43,10 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen }: ContentRende
 
     const intervalId = setInterval(syncSlides, 1000)
     return () => clearInterval(intervalId)
-  }, [content, onEnded])
+  }, [content, onEnded, isArmed])
 
   useEffect(() => {
-    if (content?.type === 'video' && content.serverTimestamp && videoRef.current) {
+    if (isArmed && content?.type === 'video' && content.serverTimestamp && videoRef.current) {
       const video = videoRef.current
       const elapsedSec = (Date.now() - content.serverTimestamp) / 1000
 
@@ -62,7 +63,7 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen }: ContentRende
 
       syncVideo()
     }
-  }, [content])
+  }, [content, isArmed])
 
   if (!content || content.type === 'standby') {
     return <StandbyScreen isFullscreen={isFullscreen} />
@@ -123,6 +124,8 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen }: ContentRende
               ref={videoRef}
               src={content.url}
               onEnded={onEnded}
+              playsInline
+              autoPlay
               className="w-full h-full object-contain focus:outline-none"
             />
           ) : null}
