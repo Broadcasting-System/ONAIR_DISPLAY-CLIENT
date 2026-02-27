@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback } from 'react'
 import { Header } from '@/components/display/Header'
 import { ContentRenderer } from '@/components/display/ContentRenderer'
 import { useFullscreen } from '@/hooks/useFullscreen'
@@ -9,9 +10,9 @@ export default function DisplayPage() {
   const { isFullscreen, toggleFullscreen } = useFullscreen()
   const { content, isConnected, clearContent } = useWebSocket()
 
-  const handleMediaEnded = () => {
+  const handleMediaEnded = useCallback(() => {
     clearContent()
-  }
+  }, [clearContent])
 
   return (
     <main className="w-full h-[100dvh] bg-black relative select-none">

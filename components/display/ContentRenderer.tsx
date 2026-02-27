@@ -87,6 +87,8 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen }: ContentRende
             <video
               src={content.url}
               autoPlay
+              muted
+              playsInline
               onEnded={onEnded}
               className="w-full h-full object-contain focus:outline-none"
             />
