@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import Hls from 'hls.js'
 import { DisplayContent } from '@/types/display'
 import { StandbyScreen } from './StandbyScreen'
 
@@ -46,12 +47,18 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
   }, [content, onEnded, isArmed])
 
   useEffect(() => {
-    if (isArmed && content?.type === 'video' && content.serverTimestamp && videoRef.current) {
+    if (isArmed && content?.type === 'video' && content.url && videoRef.current) {
       const video = videoRef.current
-      const elapsedSec = (Date.now() - content.serverTimestamp) / 1000
+      let hls: Hls | null = null
+
+      const getElapsedSec = () => {
+        if (!content.serverTimestamp) return 0
+        return (Date.now() - content.serverTimestamp) / 1000
+      }
 
       const syncVideo = async () => {
         try {
+          const elapsedSec = getElapsedSec()
           video.currentTime = elapsedSec
           await video.play()
         } catch (err) {
@@ -60,7 +67,21 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
         }
       }
 
-      syncVideo()
+      if (content.url.endsWith('.m3u8') && Hls.isSupported()) {
+        hls = new Hls({
+          maxMaxBufferLength: 30,
+          startPosition: getElapsedSec(),
+        })
+        hls.loadSource(content.url)
+        hls.attachMedia(video)
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          syncVideo()
+        })
+      } else {
+        // Fallback for native HLS (Safari) or non-HLS video
+        video.src = content.url
+        syncVideo()
+      }
 
       // Passive stall monitor: Only try to resume if paused mid-stream
       const stallCheck = setInterval(() => {
@@ -69,7 +90,12 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
         }
       }, 5000)
 
-      return () => clearInterval(stallCheck)
+      return () => {
+        clearInterval(stallCheck)
+        if (hls) {
+          hls.destroy()
+        }
+      }
     }
   }, [content, isArmed])
 

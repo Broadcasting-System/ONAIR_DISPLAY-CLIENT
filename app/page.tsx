@@ -9,7 +9,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 
 export default function DisplayPage() {
   const [isArmed, setIsArmed] = useState(false)
-  const { content, clearContent } = useWebSocket()
+  const { content, clearContent } = useWebSocket(null)
   const { isFullscreen, toggleFullscreen } = useFullscreen()
 
   const handleMediaEnded = useCallback(() => {

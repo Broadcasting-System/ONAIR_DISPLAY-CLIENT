@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { DisplayContent, WebSocketMessage } from '@/types/display'
+import { DisplayContent, WebSocketMessage, ContentType } from '@/types/display'
 
-export const useWebSocket = () => {
-  const [content, setContent] = useState<DisplayContent | null>(null)
+export const useWebSocket = (initialState: DisplayContent | null) => {
+  const [content, setContent] = useState<DisplayContent | null>(initialState)
   const [isConnected, setIsConnected] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
 
@@ -10,9 +10,12 @@ export const useWebSocket = () => {
     let reconnectTimer: NodeJS.Timeout
     const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
-    const resolveUrls = (data: any) => {
-      const { type, url, urls, fileId } = data
-      let finalUrl = url
+    const resolveUrls = (data: Partial<WebSocketMessage & { fileId?: string, hlsUrl?: string }>) => {
+      const type = data.type as ContentType | undefined;
+      const { url, urls, fileId, hlsUrl } = data
+
+      // hlsUrl이 명시적으로 주어지면 최우선으로 원본 재생 경로로 취급
+      let finalUrl = hlsUrl || url
       let finalUrls = urls
 
       if (type === 'video' || type === 'image' || type === 'audio') {
@@ -41,7 +44,7 @@ export const useWebSocket = () => {
           if (data && data.type && data.type !== 'standby') {
             const resolved = resolveUrls(data)
             setContent({
-              type: resolved.type,
+              type: resolved.type as ContentType,
               url: resolved.url,
               urls: resolved.urls,
               duration: resolved.duration,
@@ -78,7 +81,7 @@ export const useWebSocket = () => {
         setIsConnected(false)
         reconnectTimer = setTimeout(connect, 3000)
       }
-      ws.onerror = (err) => {
+      ws.onerror = (err: Event) => {
         console.error('WebSocket error:', err)
         ws.close()
       }
@@ -108,8 +111,11 @@ export const useWebSocket = () => {
               }
 
               console.log('Updating display content:', resolved)
+              if (!resolved.type) return prev
+
               return {
-                type: resolved.type,
+                ...prev,
+                type: resolved.type as ContentType,
                 url: resolved.url,
                 urls: resolved.urls || [],
                 duration: resolved.duration,
