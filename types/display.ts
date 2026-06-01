@@ -8,6 +8,7 @@ export interface Playback {
   muted: boolean
   duration?: number | null
   fit?: 'contain' | 'cover' // 여백맞춤 | 꽉채움
+  loop?: boolean // 반복 재생
 }
 
 export interface DisplayContent {

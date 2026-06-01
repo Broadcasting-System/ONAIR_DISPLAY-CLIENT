@@ -47,12 +47,16 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
     if (!pb) return
     video.volume = typeof pb.volume === 'number' ? pb.volume : 1
     video.muted = !!pb.muted
+    video.loop = !!pb.loop
 
     const target = posFromPlayback(pb)
     if (target != null) {
       let seekTo = target
       if (Number.isFinite(video.duration) && video.duration > 0) {
-        seekTo = Math.min(target, Math.max(0, video.duration - 0.2))
+        // 반복 재생이면 경과 위치를 길이로 나눈 나머지(현재 루프 위치)
+        seekTo = pb.loop
+          ? target % video.duration
+          : Math.min(target, Math.max(0, video.duration - 0.2))
       }
       if (Math.abs(video.currentTime - seekTo) > 0.7) {
         try {
@@ -280,7 +284,17 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
           <>
             <video
               ref={videoRef}
-              onEnded={onEnded}
+              onEnded={() => {
+                // 반복 재생이면 처음부터 다시, 아니면 종료 처리
+                if (playbackRef.current?.loop && videoRef.current) {
+                  try {
+                    videoRef.current.currentTime = 0
+                  } catch {}
+                  videoRef.current.play().catch(() => {})
+                  return
+                }
+                onEnded()
+              }}
               playsInline
               className="absolute inset-0 h-full w-full focus:outline-none"
               style={{ objectFit: videoFit }}
