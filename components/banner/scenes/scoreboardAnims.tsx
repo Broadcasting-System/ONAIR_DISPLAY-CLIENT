@@ -1,0 +1,511 @@
+'use client'
+
+import { CSSProperties } from 'react'
+
+export type ScoreAnim = 'slamshine' | 'slam' | 'shine' | 'neon' | 'drop'
+
+const SCORE_FONT: CSSProperties = {
+  fontFamily: '"SDDystopianDemo", Orbitron, sans-serif',
+  fontWeight: 400,
+  fontSize: 420,
+  lineHeight: 1,
+  letterSpacing: '0.02em',
+  whiteSpace: 'nowrap',
+}
+
+const GREEN_GLOW = '0 0 60px rgba(80,255,160,0.95), 0 8px 28px rgba(0,0,0,0.75)'
+const GOLD_GLOW = '0 0 70px rgba(255,225,77,0.9), 0 8px 30px rgba(0,0,0,0.85)'
+
+/* =========================== 득점 애니메이션 =========================== */
+
+export function ScoreFlash({
+  side,
+  anim,
+}: {
+  side: 'left' | 'right'
+  anim: ScoreAnim
+}) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        [side]: 120,
+        display: 'flex',
+        alignItems: 'center',
+        pointerEvents: 'none',
+        animation: 'bnHold 1600ms ease-out forwards',
+      }}
+    >
+      {anim === 'shine' ? (
+        <Shine />
+      ) : anim === 'neon' ? (
+        <Neon />
+      ) : anim === 'drop' ? (
+        <Drop />
+      ) : anim === 'slam' ? (
+        <Slam />
+      ) : (
+        // 기본: 임팩트 + 샤인
+        <ImpactShineWord text="SCORE" accent="#fff" glow={GREEN_GLOW} />
+      )}
+    </div>
+  )
+}
+
+/**
+ * 임팩트(쾅 착지 + 흔들림 + 발광) → 끝에 샤인 스윕(빛줄기가 글자를 훑음).
+ * 득점 SCORE / 승리 WIN 모두 재사용.
+ */
+export function ImpactShineWord({
+  text,
+  accent,
+  glow,
+}: {
+  text: string
+  accent: string
+  glow: string
+}) {
+  return (
+    <div style={{ position: 'relative', animation: 'bnSlamShake 1400ms ease-out forwards' }}>
+      {/* 착지 임팩트 발광 버스트 */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: '-25% -12%',
+          borderRadius: '50%',
+          background:
+            'radial-gradient(ellipse at center, rgba(255,255,255,0.45) 0%, transparent 65%)',
+          animation: 'bnBurst 1400ms ease-out forwards',
+        }}
+      />
+      {/* 글자 박스 (레이아웃은 scale=1 기준 고정 → 샤인 클론과 정렬됨) */}
+      <div style={{ position: 'relative', display: 'inline-block' }}>
+        {/* 베이스: 원래 밝기 그대로 */}
+        <span
+          style={{
+            ...SCORE_FONT,
+            display: 'inline-block',
+            color: accent,
+            textShadow: glow,
+            animation: 'bnSlam 1400ms cubic-bezier(0.15,0.85,0.25,1) forwards',
+          }}
+        >
+          {text}
+        </span>
+        {/* 샤인 레이어: 글자 글리프에 빛줄기(background-clip: text) + 강한 블룸.
+            베이스를 어둡게 하지 않고 글로우 헤일로로 훑는 효과를 낸다. */}
+        <span
+          aria-hidden
+          style={{
+            ...SCORE_FONT,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            display: 'inline-block',
+            backgroundImage:
+              'linear-gradient(100deg, transparent 42%, rgba(255,255,255,1) 50%, transparent 58%)',
+            backgroundSize: '300% 100%',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: '200% 0',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent',
+            WebkitTextFillColor: 'transparent',
+            filter:
+              'drop-shadow(0 0 36px rgba(255,255,255,1)) drop-shadow(0 0 16px rgba(150,255,200,1)) drop-shadow(0 0 6px rgba(255,255,255,1))',
+            opacity: 0,
+            animation: 'bnShineBg 850ms 600ms ease-out forwards',
+          }}
+        >
+          {text}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function Slam() {
+  return <ImpactShineWordNoShine text="SCORE" accent="#fff" glow={GREEN_GLOW} />
+}
+
+function ImpactShineWordNoShine({
+  text,
+  accent,
+  glow,
+}: {
+  text: string
+  accent: string
+  glow: string
+}) {
+  return (
+    <div style={{ position: 'relative', animation: 'bnSlamShake 1400ms ease-out forwards' }}>
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: '-20% -10%',
+          borderRadius: '50%',
+          background:
+            'radial-gradient(ellipse at center, rgba(80,255,160,0.55) 0%, transparent 65%)',
+          animation: 'bnBurst 1400ms ease-out forwards',
+        }}
+      />
+      <span
+        style={{
+          ...SCORE_FONT,
+          position: 'relative',
+          display: 'inline-block',
+          color: accent,
+          textShadow: glow,
+          animation: 'bnSlam 1400ms cubic-bezier(0.15,0.85,0.25,1) forwards',
+        }}
+      >
+        {text}
+      </span>
+    </div>
+  )
+}
+
+function Shine() {
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+      <span
+        style={{
+          ...SCORE_FONT,
+          display: 'inline-block',
+          color: '#fff',
+          textShadow: GREEN_GLOW,
+          animation: 'bnFadeUp 480ms ease-out forwards',
+        }}
+      >
+        SCORE
+      </span>
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          width: '55%',
+          background:
+            'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.95) 50%, transparent 70%)',
+          mixBlendMode: 'overlay',
+          transform: 'translateX(-180%)',
+          animation: 'bnShine 1100ms 240ms ease-in-out forwards',
+        }}
+      />
+    </div>
+  )
+}
+
+function Neon() {
+  return (
+    <span
+      style={{
+        ...SCORE_FONT,
+        display: 'inline-block',
+        color: '#fff',
+        animation: 'bnNeon 1500ms ease-out forwards',
+      }}
+    >
+      SCORE
+    </span>
+  )
+}
+
+function Drop() {
+  const letters = 'SCORE'.split('')
+  return (
+    <div style={{ display: 'flex', gap: 4 }}>
+      {letters.map((c, i) => (
+        <span
+          key={i}
+          style={{
+            ...SCORE_FONT,
+            display: 'inline-block',
+            color: '#fff',
+            textShadow: GREEN_GLOW,
+            opacity: 0,
+            animation: `bnDrop 640ms ${i * 70}ms cubic-bezier(0.3,1.5,0.5,1) forwards`,
+          }}
+        >
+          {c}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+/* =========================== 승리 애니메이션 (임팩트+샤인 WIN) =========================== */
+
+export function VictoryOverlay({
+  side,
+  name,
+}: {
+  side: 'left' | 'right'
+  name?: string
+}) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: side === 'left' ? 'flex-start' : 'flex-end',
+        padding: '0 200px',
+        pointerEvents: 'none',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          animation: 'bnFade 500ms ease-out forwards',
+        }}
+      />
+      <div style={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
+        {name ? (
+          <div
+            style={{
+              fontFamily: '"Paperlogy", "Pretendard Variable", sans-serif',
+              fontWeight: 800,
+              fontSize: 120,
+              color: '#fff',
+              textShadow: '0 4px 20px rgba(0,0,0,0.85)',
+              marginBottom: 8,
+              animation: 'bnFadeUp 600ms 200ms both',
+            }}
+          >
+            {name}
+          </div>
+        ) : null}
+        <ImpactShineWord
+          text="WIN"
+          accent="#7dffb0"
+          glow="0 0 70px rgba(80,255,160,0.95), 0 8px 30px rgba(0,0,0,0.85)"
+        />
+      </div>
+    </div>
+  )
+}
+
+/* =========================== 코트 체인지 애니메이션 =========================== */
+
+export function CourtChangeOverlay() {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 40,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+        overflow: 'hidden',
+      }}
+    >
+      {/* 백드롭 */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(4,12,24,0.5)',
+          animation: 'bnCourtBg 1500ms ease-out forwards',
+        }}
+      />
+      {/* 빛 스윕 */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          width: '45%',
+          background:
+            'linear-gradient(100deg, transparent 0%, rgba(90,184,255,0.55) 50%, transparent 100%)',
+          transform: 'translateX(-160%) skewX(-12deg)',
+          animation: 'bnCourtSwipe 1100ms 80ms ease-in-out forwards',
+        }}
+      />
+      {/* 텍스트 (SCORE와 동일 폰트) */}
+      <span
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          fontFamily: '"SDDystopianDemo", Orbitron, sans-serif',
+          fontWeight: 400,
+          fontSize: 300,
+          lineHeight: 1,
+          letterSpacing: '0.02em',
+          color: '#cfeaff',
+          whiteSpace: 'nowrap',
+          textShadow: '0 0 60px rgba(90,184,255,0.95), 0 8px 28px rgba(0,0,0,0.85)',
+          animation: 'bnCourtText 1500ms cubic-bezier(0.2,1.3,0.3,1) forwards',
+        }}
+      >
+        COURT CHANGE
+      </span>
+    </div>
+  )
+}
+
+/* =========================== 공용 announce 오버레이 (코트체인지 스타일) =========================== */
+// 세트 획득 / 매치포인트 / 듀스 등 한국어 안내. accent: 스윕·글로우 색, color: 글자색.
+export function AnnounceOverlay({
+  text,
+  accent,
+  color,
+}: {
+  text: string
+  accent: string
+  color: string
+}) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 42,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(4,12,24,0.5)',
+          animation: 'bnCourtBg 1500ms ease-out forwards',
+        }}
+      />
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          width: '45%',
+          background: `linear-gradient(100deg, transparent 0%, ${accent} 50%, transparent 100%)`,
+          transform: 'translateX(-160%) skewX(-12deg)',
+          animation: 'bnCourtSwipe 1100ms 80ms ease-in-out forwards',
+        }}
+      />
+      <span
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          fontFamily: '"SDDystopianDemo", Orbitron, sans-serif',
+          fontWeight: 400,
+          fontSize: 300,
+          lineHeight: 1,
+          letterSpacing: '0.02em',
+          color,
+          whiteSpace: 'nowrap',
+          textShadow: `0 0 60px ${accent}, 0 8px 28px rgba(0,0,0,0.85)`,
+          animation: 'bnCourtText 1500ms cubic-bezier(0.2,1.3,0.3,1) forwards',
+        }}
+      >
+        {text}
+      </span>
+    </div>
+  )
+}
+
+/* =========================== 키프레임 =========================== */
+
+export function ScoreboardAnimKeyframes() {
+  return (
+    <style>{`
+      @keyframes bnHold {
+        0% { opacity: 0; } 5% { opacity: 1; } 86% { opacity: 1; } 100% { opacity: 0; }
+      }
+      @keyframes bnFade { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+      @keyframes bnSlam {
+        0% { opacity: 0; transform: scale(2.7); filter: blur(8px); }
+        11% { opacity: 1; transform: scale(0.9); filter: blur(0); }
+        17% { transform: scale(1.05); } 23% { transform: scale(0.99); }
+        28% { transform: scale(1); } 100% { opacity: 1; transform: scale(1); }
+      }
+      @keyframes bnSlamShake {
+        0%,11% { transform: translate(0,0); }
+        13% { transform: translate(-14px,5px); } 16% { transform: translate(11px,-4px); }
+        19% { transform: translate(-8px,3px); } 22% { transform: translate(5px,-2px); }
+        25%,100% { transform: translate(0,0); }
+      }
+      @keyframes bnBurst {
+        0% { opacity: 0; transform: scale(0.4); }
+        11% { opacity: 0.9; transform: scale(1.15); }
+        26%,100% { opacity: 0; transform: scale(1.4); }
+      }
+
+      /* 샤인 (글자 글리프 클립 스윕) */
+      @keyframes bnShineBg {
+        0% { background-position: 220% 0; opacity: 0; }
+        12% { opacity: 1; }
+        88% { opacity: 1; }
+        100% { background-position: -120% 0; opacity: 0; }
+      }
+
+      /* 독립 샤인(바) */
+      @keyframes bnFadeUp {
+        0% { opacity: 0; transform: translateY(24px) scale(0.96); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes bnShine {
+        0% { transform: translateX(-180%) skewX(-12deg); }
+        100% { transform: translateX(320%) skewX(-12deg); }
+      }
+
+      /* 네온 */
+      @keyframes bnNeon {
+        0% { opacity: 0; text-shadow: none; }
+        8% { opacity: 1; } 10% { opacity: 0.2; } 14% { opacity: 1; } 16% { opacity: 0.35; }
+        20% { opacity: 1; text-shadow: 0 0 30px rgba(80,255,160,0.8); }
+        24% { opacity: 0.6; } 28% { opacity: 1; }
+        100% { opacity: 1; text-shadow: 0 0 60px rgba(80,255,160,0.95), 0 0 20px rgba(80,255,160,0.9); }
+      }
+
+      /* 바운스 드롭 */
+      @keyframes bnDrop {
+        0% { opacity: 0; transform: translateY(-440px); }
+        60% { opacity: 1; transform: translateY(22px); }
+        80% { transform: translateY(-8px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+
+      /* 코트 체인지 */
+      @keyframes bnCourtBg {
+        0% { opacity: 0; } 12% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; }
+      }
+      @keyframes bnCourtSwipe {
+        0% { transform: translateX(-160%) skewX(-12deg); }
+        100% { transform: translateX(340%) skewX(-12deg); }
+      }
+      @keyframes bnCourtText {
+        0% { opacity: 0; transform: scale(0.5); }
+        58% { opacity: 1; transform: scale(1.06); }
+        72% { transform: scale(1); }
+        84% { opacity: 1; }
+        100% { opacity: 0; transform: scale(1); }
+      }
+    `}</style>
+  )
+}

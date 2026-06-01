@@ -13,7 +13,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      {/* 브라우저 확장이 body에 주입하는 속성으로 인한 hydration 경고 억제 */}
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }

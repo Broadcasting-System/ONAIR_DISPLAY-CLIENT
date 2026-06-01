@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { DisplayContent, WebSocketMessage, ContentType } from '@/types/display'
+import { backendBase, backendWs } from '@/lib/backend'
 
 export const useWebSocket = (initialState: DisplayContent | null) => {
   const [content, setContent] = useState<DisplayContent | null>(initialState)
@@ -8,22 +9,37 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
 
   useEffect(() => {
     let reconnectTimer: NodeJS.Timeout
-    const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+    const BASE = backendBase()
 
-    const resolveUrls = (data: Partial<WebSocketMessage & { fileId?: string, hlsUrl?: string }>) => {
+    const resolveUrls = (data: Partial<WebSocketMessage>) => {
       const type = data.type as ContentType | undefined;
       const { url, urls, fileId, hlsUrl } = data
 
       // hlsUrl이 명시적으로 주어지면 최우선으로 원본 재생 경로로 취급
       let finalUrl = hlsUrl || url
       let finalUrls = urls
+      let fallbackUrl: string | undefined
+
+      const streamFromFileId = (t: string) => {
+        if (!fileId) return undefined
+        const name = fileId.startsWith('file_') ? fileId.slice(5) : fileId
+        return `/api/files/stream/${t}/${name}`
+      }
 
       if (type === 'video' || type === 'image' || type === 'audio') {
         if (!finalUrl && fileId) {
-          finalUrl = `/api/files/stream/${type}/${fileId}`
+          finalUrl = streamFromFileId(type)
+        }
+        // 비디오: 직접 스트림(mp4)을 HLS 폴백으로 준비
+        if (type === 'video') {
+          const direct = streamFromFileId('video')
+          if (direct && direct !== finalUrl) fallbackUrl = direct
         }
         if (finalUrl && !finalUrl.startsWith('http')) {
           finalUrl = `${BASE}${finalUrl}`
+        }
+        if (fallbackUrl && !fallbackUrl.startsWith('http')) {
+          fallbackUrl = `${BASE}${fallbackUrl}`
         }
       }
 
@@ -31,7 +47,7 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
         finalUrls = finalUrls.map((u: string) => u.startsWith('http') ? u : `${BASE}${u}`)
       }
 
-      return { ...data, url: finalUrl, urls: finalUrls }
+      return { ...data, url: finalUrl, urls: finalUrls, fallbackUrl }
     }
 
     const fetchInitialStatus = async () => {
@@ -46,9 +62,12 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
             setContent({
               type: resolved.type as ContentType,
               url: resolved.url,
+              fallbackUrl: resolved.fallbackUrl,
               urls: resolved.urls,
               duration: resolved.duration,
               serverTimestamp: resolved.serverTimestamp,
+              playback: data.playback,
+              slideIndex: data.slideIndex,
             })
           }
         } else {
@@ -62,11 +81,7 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
     fetchInitialStatus()
 
     const connect = () => {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL
-      if (!wsUrl) {
-        console.error('NEXT_PUBLIC_WS_URL is not defined')
-        return
-      }
+      const wsUrl = backendWs('/api/display/ws')
 
       console.log('Connecting to WebSocket:', wsUrl)
       const ws = new WebSocket(wsUrl)
@@ -81,8 +96,9 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
         setIsConnected(false)
         reconnectTimer = setTimeout(connect, 3000)
       }
-      ws.onerror = (err: Event) => {
-        console.error('WebSocket error:', err)
+      ws.onerror = () => {
+        // 연결 실패는 onclose에서 자동 재연결되므로 경고 수준으로만 남김
+        console.warn('WebSocket 연결 재시도 예정')
         ws.close()
       }
 
@@ -104,7 +120,10 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
                 prev.type === resolved.type &&
                 prev.url === resolved.url &&
                 JSON.stringify(prev.urls) === JSON.stringify(resolved.urls || []) &&
-                prev.duration === resolved.duration
+                prev.duration === resolved.duration &&
+                // 재생제어(playback)·슬라이드 변경은 무시하지 않음
+                JSON.stringify(prev.playback) === JSON.stringify(message.playback) &&
+                prev.slideIndex === message.slideIndex
               ) {
                 console.log('Redundant content update ignored')
                 return prev
@@ -117,9 +136,12 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
                 ...prev,
                 type: resolved.type as ContentType,
                 url: resolved.url,
+                fallbackUrl: resolved.fallbackUrl,
                 urls: resolved.urls || [],
                 duration: resolved.duration,
                 serverTimestamp: resolved.serverTimestamp,
+                playback: message.playback,
+                slideIndex: message.slideIndex,
               }
             })
           }

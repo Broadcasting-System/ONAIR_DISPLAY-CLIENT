@@ -6,6 +6,7 @@ import { ContentRenderer } from '@/components/display/ContentRenderer'
 import { EntryOverlay } from '@/components/display/EntryOverlay'
 import { useFullscreen } from '@/hooks/useFullscreen'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { backendBase } from '@/lib/backend'
 
 export default function DisplayPage() {
   const [isArmed, setIsArmed] = useState(false)
@@ -14,6 +15,8 @@ export default function DisplayPage() {
 
   const handleMediaEnded = useCallback(() => {
     clearContent()
+    // 서버도 standby로 비워 컨트롤·다른 디스플레이까지 동기화
+    fetch(`${backendBase()}/api/display/clear`, { method: 'POST' }).catch(() => {})
   }, [clearContent])
 
   const handleEnter = () => {
