@@ -216,7 +216,7 @@ export function ScoreboardScene({
       {/* 세트 획득 / 매치포인트 / 듀스 안내 (1회) */}
       {announce ? (
         <AnnounceOverlay
-          key={announce.key}
+          key={`announce-${announce.key}`}
           text={announce.text}
           accent={announce.accent}
           color={announce.color}
@@ -224,11 +224,11 @@ export function ScoreboardScene({
       ) : null}
 
       {/* 코트 체인지 오버레이 — courtFx가 오를 때만 1회 (새로고침 시엔 안 뜸) */}
-      {courtFx > 0 ? <CourtChangeOverlay key={courtFx} /> : null}
+      {courtFx > 0 ? <CourtChangeOverlay key={`court-${courtFx}`} /> : null}
 
       {/* 승리 오버레이 — victory가 있으면 표시 (at 변경 시 재발동) */}
       {victory ? (
-        <VictoryOverlay key={victory.at} side={victory.side} name={victory.name} />
+        <VictoryOverlay key={`victory-${victory.at}`} side={victory.side} name={victory.name} />
       ) : null}
     </div>
   )

@@ -47,7 +47,8 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
     if (!pb) return
     video.volume = typeof pb.volume === 'number' ? pb.volume : 1
     video.muted = !!pb.muted
-    video.loop = !!pb.loop
+    // 네이티브 loop는 'ended' 이벤트를 막아버려 HLS에서 멈춤 → loop는 onEnded 핸들러로 처리
+    video.loop = false
 
     const target = posFromPlayback(pb)
     if (target != null) {
@@ -211,18 +212,38 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
     video.addEventListener('waiting', onWaiting)
     video.addEventListener('playing', onPlaying)
 
-    // 재생 상태인데 멈춰있으면 복구 (일시정지는 건드리지 않음)
-    const stallCheck = setInterval(() => {
-      if (
-        !destroyed &&
-        playbackRef.current?.playing &&
-        video.paused &&
-        !video.ended &&
-        video.readyState >= 2
-      ) {
+    // 반복 재생 백업: 'ended' 이벤트(addEventListener) — JSX onEnded가 못 잡는 경우 대비
+    const onEndedEvt = () => {
+      if (destroyed) return
+      if (playbackRef.current?.loop) {
+        try {
+          video.currentTime = 0
+        } catch {}
         video.play().catch(() => {})
       }
-    }, 5000)
+    }
+    video.addEventListener('ended', onEndedEvt)
+
+    // 주기 점검: ① 반복인데 끝에서 멈춤 → 되감기 ② 재생인데 멈춤 → 복구
+    const stallCheck = setInterval(() => {
+      if (destroyed) return
+      const pb = playbackRef.current
+      const dur = video.duration
+      const nearEnd =
+        Number.isFinite(dur) && dur > 0 && video.currentTime >= dur - 0.4
+      // 반복: 끝났거나 끝에서 멈춰있으면 처음부터
+      if (pb?.loop && (video.ended || (video.paused && nearEnd))) {
+        try {
+          video.currentTime = 0
+        } catch {}
+        video.play().catch(() => {})
+        return
+      }
+      // 재생 상태인데 멈춰있으면 복구 (일시정지는 건드리지 않음)
+      if (pb?.playing && video.paused && !video.ended && video.readyState >= 2) {
+        video.play().catch(() => {})
+      }
+    }, 700)
 
     return () => {
       destroyed = true
@@ -230,6 +251,7 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
       video.removeEventListener('loadedmetadata', onLoadedMeta)
       video.removeEventListener('waiting', onWaiting)
       video.removeEventListener('playing', onPlaying)
+      video.removeEventListener('ended', onEndedEvt)
       if (hls) hls.destroy()
       hlsRef.current = null
     }

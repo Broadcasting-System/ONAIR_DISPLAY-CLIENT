@@ -301,6 +301,7 @@ export function VictoryOverlay({
 /* =========================== 코트 체인지 애니메이션 =========================== */
 
 export function CourtChangeOverlay() {
+  const sky = 'rgba(90,184,255,0.55)'
   return (
     <div
       style={{
@@ -321,10 +322,10 @@ export function CourtChangeOverlay() {
           position: 'absolute',
           inset: 0,
           background: 'rgba(4,12,24,0.5)',
-          animation: 'bnCourtBg 1500ms ease-out forwards',
+          animation: 'bnCourtBg 1600ms ease-out forwards',
         }}
       />
-      {/* 빛 스윕 */}
+      {/* 좌우 교차(swap) 빔 A: 왼→오 */}
       <div
         aria-hidden
         style={{
@@ -332,18 +333,32 @@ export function CourtChangeOverlay() {
           top: 0,
           bottom: 0,
           left: 0,
-          width: '45%',
-          background:
-            'linear-gradient(100deg, transparent 0%, rgba(90,184,255,0.55) 50%, transparent 100%)',
-          transform: 'translateX(-160%) skewX(-12deg)',
-          animation: 'bnCourtSwipe 1100ms 80ms ease-in-out forwards',
+          width: '38%',
+          background: `linear-gradient(100deg, transparent 0%, ${sky} 50%, transparent 100%)`,
+          transform: 'translateX(-170%) skewX(-16deg)',
+          animation: 'bnCourtBeamA 900ms ease-in-out forwards',
         }}
       />
-      {/* 텍스트 (SCORE와 동일 폰트) */}
+      {/* 좌우 교차(swap) 빔 B: 오→왼 (A와 엇갈려 교차 = 코트 스왑) */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          right: 0,
+          width: '38%',
+          background: `linear-gradient(-100deg, transparent 0%, ${sky} 50%, transparent 100%)`,
+          transform: 'translateX(170%) skewX(16deg)',
+          animation: 'bnCourtBeamB 900ms ease-in-out forwards',
+        }}
+      />
+      {/* 텍스트 — 코트가 뒤집히듯 3D 회전하며 등장 (SCORE와 동일 폰트) */}
       <span
         style={{
           position: 'relative',
           zIndex: 2,
+          transformStyle: 'preserve-3d',
           fontFamily: '"SDDystopianDemo", Orbitron, sans-serif',
           fontWeight: 400,
           fontSize: 300,
@@ -352,7 +367,7 @@ export function CourtChangeOverlay() {
           color: '#cfeaff',
           whiteSpace: 'nowrap',
           textShadow: '0 0 60px rgba(90,184,255,0.95), 0 8px 28px rgba(0,0,0,0.85)',
-          animation: 'bnCourtText 1500ms cubic-bezier(0.2,1.3,0.3,1) forwards',
+          animation: 'bnCourtFlip 1600ms cubic-bezier(0.2,1.1,0.25,1) forwards',
         }}
       >
         COURT CHANGE
@@ -361,8 +376,9 @@ export function CourtChangeOverlay() {
   )
 }
 
-/* =========================== 공용 announce 오버레이 (코트체인지 스타일) =========================== */
-// 세트 획득 / 매치포인트 / 듀스 등 한국어 안내. accent: 스윕·글로우 색, color: 글자색.
+/* =========================== 공용 announce 오버레이 =========================== */
+// 세트 획득 / 매치포인트 / 듀스 안내. 글자를 쪼개 양옆에서 날아와 콱 박히는 연출.
+// accent: 스윕·글로우 색, color: 글자색.
 export function AnnounceOverlay({
   text,
   accent,
@@ -372,6 +388,10 @@ export function AnnounceOverlay({
   accent: string
   color: string
 }) {
+  const chars = text.split('')
+  // 글자들이 거의 동시에 착지하는 시각(ms) — 충격파/흔들림 타이밍 기준
+  const IMPACT = 560
+
   return (
     <div
       style={{
@@ -385,45 +405,85 @@ export function AnnounceOverlay({
         overflow: 'hidden',
       }}
     >
+      {/* 백드롭 */}
       <div
         aria-hidden
         style={{
           position: 'absolute',
           inset: 0,
           background: 'rgba(4,12,24,0.5)',
-          animation: 'bnCourtBg 1500ms ease-out forwards',
+          animation: 'bnCourtBg 1600ms ease-out forwards',
         }}
       />
+      {/* 착지 충격파 링 */}
       <div
         aria-hidden
         style={{
           position: 'absolute',
-          top: 0,
-          bottom: 0,
-          left: 0,
-          width: '45%',
-          background: `linear-gradient(100deg, transparent 0%, ${accent} 50%, transparent 100%)`,
-          transform: 'translateX(-160%) skewX(-12deg)',
-          animation: 'bnCourtSwipe 1100ms 80ms ease-in-out forwards',
+          width: 200,
+          height: 200,
+          borderRadius: '50%',
+          border: `6px solid ${accent}`,
+          boxShadow: `0 0 80px ${accent}`,
+          opacity: 0,
+          animation: `bnAnnShock 700ms ${IMPACT}ms cubic-bezier(0.1,0.7,0.3,1) forwards`,
         }}
       />
-      <span
+      {/* 착지 백색 플래시 */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(ellipse at center, rgba(255,255,255,0.5) 0%, transparent 55%)',
+          opacity: 0,
+          animation: `bnAnnFlash 480ms ${IMPACT}ms ease-out forwards`,
+        }}
+      />
+      {/* 글자 — 양옆에서 날아와 착지 후 흔들림 (바깥 div는 유지 후 페이드아웃) */}
+      <div
         style={{
           position: 'relative',
           zIndex: 2,
-          fontFamily: '"SDDystopianDemo", Orbitron, sans-serif',
-          fontWeight: 400,
-          fontSize: 300,
-          lineHeight: 1,
-          letterSpacing: '0.02em',
-          color,
-          whiteSpace: 'nowrap',
-          textShadow: `0 0 60px ${accent}, 0 8px 28px rgba(0,0,0,0.85)`,
-          animation: 'bnCourtText 1500ms cubic-bezier(0.2,1.3,0.3,1) forwards',
+          animation: 'bnAnnHold 1600ms ease-out forwards',
         }}
       >
-        {text}
-      </span>
+       <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          whiteSpace: 'nowrap',
+          animation: `bnAnnShake 360ms ${IMPACT}ms ease-out`,
+        }}
+       >
+        {chars.map((c, i) => {
+          if (c === ' ') return <span key={i} style={{ width: 80 }} />
+          const fromLeft = i % 2 === 0
+          // 가운데에서 멀수록 살짝 먼저 출발 → 거의 동시에 착지
+          const delay = Math.max(0, IMPACT - 520 - i * 6)
+          return (
+            <span
+              key={i}
+              style={{
+                display: 'inline-block',
+                fontFamily: '"SDDystopianDemo", Orbitron, sans-serif',
+                fontWeight: 400,
+                fontSize: 300,
+                lineHeight: 1,
+                letterSpacing: '0.02em',
+                color,
+                textShadow: `0 0 60px ${accent}, 0 8px 28px rgba(0,0,0,0.85)`,
+                opacity: 0,
+                animation: `${fromLeft ? 'bnAnnFlyL' : 'bnAnnFlyR'} 560ms ${delay}ms cubic-bezier(0.2,0.9,0.2,1) forwards`,
+              }}
+            >
+              {c}
+            </span>
+          )
+        })}
+       </div>
+      </div>
     </div>
   )
 }
@@ -505,6 +565,61 @@ export function ScoreboardAnimKeyframes() {
         72% { transform: scale(1); }
         84% { opacity: 1; }
         100% { opacity: 0; transform: scale(1); }
+      }
+      /* 코트 스왑 교차 빔 */
+      @keyframes bnCourtBeamA {
+        0% { transform: translateX(-170%) skewX(-16deg); }
+        100% { transform: translateX(360%) skewX(-16deg); }
+      }
+      @keyframes bnCourtBeamB {
+        0% { transform: translateX(170%) skewX(16deg); }
+        100% { transform: translateX(-360%) skewX(16deg); }
+      }
+      /* 코트 체인지 텍스트: 뒤집히듯 3D 회전 등장 → 유지 → 페이드 */
+      @keyframes bnCourtFlip {
+        0%   { opacity: 0; transform: perspective(1400px) rotateY(-100deg) scale(1.12); }
+        22%  { opacity: 1; transform: perspective(1400px) rotateY(14deg) scale(1.02); }
+        33%  { transform: perspective(1400px) rotateY(-7deg) scale(1); }
+        44%  { transform: perspective(1400px) rotateY(0deg) scale(1); }
+        82%  { opacity: 1; transform: perspective(1400px) rotateY(0deg) scale(1); }
+        100% { opacity: 0; transform: perspective(1400px) rotateY(0deg) scale(1.03); }
+      }
+
+      /* announce: 글자 쪼개 양옆에서 날아와 콱 박힘 */
+      @keyframes bnAnnFlyL {
+        0%   { opacity: 0; transform: translateX(-118vw) rotate(-16deg) scale(1.5); filter: blur(6px); }
+        55%  { opacity: 1; filter: blur(0); }
+        72%  { transform: translateX(26px) rotate(4deg) scale(1.04); }
+        86%  { transform: translateX(-8px) rotate(-1deg) scale(0.99); }
+        100% { opacity: 1; transform: translateX(0) rotate(0) scale(1); }
+      }
+      @keyframes bnAnnFlyR {
+        0%   { opacity: 0; transform: translateX(118vw) rotate(16deg) scale(1.5); filter: blur(6px); }
+        55%  { opacity: 1; filter: blur(0); }
+        72%  { transform: translateX(-26px) rotate(-4deg) scale(1.04); }
+        86%  { transform: translateX(8px) rotate(1deg) scale(0.99); }
+        100% { opacity: 1; transform: translateX(0) rotate(0) scale(1); }
+      }
+      @keyframes bnAnnShake {
+        0% { transform: translate(0,0); }
+        20% { transform: translate(-12px,4px); }
+        40% { transform: translate(9px,-3px); }
+        60% { transform: translate(-6px,2px); }
+        80% { transform: translate(3px,-1px); }
+        100% { transform: translate(0,0); }
+      }
+      @keyframes bnAnnShock {
+        0% { opacity: 0; transform: scale(0.2); }
+        18% { opacity: 0.95; }
+        100% { opacity: 0; transform: scale(7); }
+      }
+      @keyframes bnAnnFlash {
+        0% { opacity: 0; }
+        14% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+      @keyframes bnAnnHold {
+        0% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; }
       }
     `}</style>
   )
