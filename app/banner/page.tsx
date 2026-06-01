@@ -18,8 +18,24 @@ function BannerInner() {
   // 송출 중 마우스가 멈추면 커서 자동 숨김 (debug일 땐 유지)
   const cursorHidden = useIdleCursor(2000, debug)
 
-  // 효과음 (실제 송출 화면에서만, 사용자 클릭 1회로 활성화)
-  const [soundOn, setSoundOn] = useState(false)
+  // 효과음: 실제 송출 화면에서 첫 사용자 제스처(클릭/키/터치/풀스크린) 시 자동 활성화
+  useEffect(() => {
+    if (role === 'control') return
+    const unlock = () => {
+      unlockScoreSound()
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
+      window.removeEventListener('touchstart', unlock)
+    }
+    window.addEventListener('pointerdown', unlock)
+    window.addEventListener('keydown', unlock)
+    window.addEventListener('touchstart', unlock)
+    return () => {
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
+      window.removeEventListener('touchstart', unlock)
+    }
+  }, [role])
 
   return (
     <main
@@ -40,31 +56,6 @@ function BannerInner() {
 
       {/* 안전 영역 가이드 (?safe=1) — 현수막 가장자리 잘림 대비 */}
       {safe && <SafeAreaGuide />}
-
-      {/* 효과음 활성화 버튼 (실제 송출 화면 + 아직 안 켰을 때만) */}
-      {role === 'display' && !soundOn && (
-        <button
-          onClick={() => {
-            unlockScoreSound()
-            setSoundOn(true)
-          }}
-          style={{
-            position: 'fixed',
-            top: 12,
-            right: 12,
-            zIndex: 1000,
-            padding: '8px 14px',
-            borderRadius: 8,
-            border: '1px solid rgba(255,255,255,0.25)',
-            background: 'rgba(0,0,0,0.55)',
-            color: '#fff',
-            font: '14px/1 "Pretendard Variable", sans-serif',
-            cursor: 'pointer',
-          }}
-        >
-          🔊 효과음 켜기
-        </button>
-      )}
 
       {debug && role !== 'control' && (
         <div
