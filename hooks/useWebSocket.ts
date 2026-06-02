@@ -68,6 +68,7 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
               serverTimestamp: resolved.serverTimestamp,
               playback: data.playback,
               slideIndex: data.slideIndex,
+              overlay: data.overlay,
             })
           }
         } else {
@@ -123,7 +124,8 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
                 prev.duration === resolved.duration &&
                 // 재생제어(playback)·슬라이드 변경은 무시하지 않음
                 JSON.stringify(prev.playback) === JSON.stringify(message.playback) &&
-                prev.slideIndex === message.slideIndex
+                prev.slideIndex === message.slideIndex &&
+                JSON.stringify(prev.overlay) === JSON.stringify(message.overlay)
               ) {
                 console.log('Redundant content update ignored')
                 return prev
@@ -142,6 +144,7 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
                 serverTimestamp: resolved.serverTimestamp,
                 playback: message.playback,
                 slideIndex: message.slideIndex,
+                overlay: message.overlay,
               }
             })
           }

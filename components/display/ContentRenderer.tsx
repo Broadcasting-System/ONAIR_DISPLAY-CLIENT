@@ -1,7 +1,52 @@
 import { useEffect, useRef, useState } from 'react'
 import Hls from 'hls.js'
-import { DisplayContent, Playback } from '@/types/display'
+import { DisplayContent, Playback, ImageOverlay } from '@/types/display'
 import { StandbyScreen } from './StandbyScreen'
+
+/** 이미지 위 텍스트 오버레이 — 부모(16:9 박스)의 컨테이너 너비(cqw) 기준으로 크기 결정 */
+function ImageTextOverlay({ overlay }: { overlay: ImageOverlay }) {
+  if (!overlay.visible || !overlay.text?.trim()) return null
+  const justify =
+    overlay.position === 'top'
+      ? 'flex-start'
+      : overlay.position === 'center'
+        ? 'center'
+        : 'flex-end'
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: 'absolute',
+        inset: 0,
+        containerType: 'inline-size', // cqw 기준: 이 박스(이미지 영역) 너비
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: justify,
+        alignItems: 'center',
+        padding: '6cqw',
+        pointerEvents: 'none',
+      }}
+    >
+      <span
+        style={{
+          fontFamily: '"Paperlogy", "Pretendard Variable", sans-serif',
+          fontWeight: 800,
+          fontSize: `${overlay.size}cqw`,
+          lineHeight: 1.15,
+          color: overlay.color || '#ffffff',
+          textAlign: 'center',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'keep-all',
+          textShadow:
+            '0 0.3cqw 1.2cqw rgba(0,0,0,0.85), 0 0 0.4cqw rgba(0,0,0,0.9)',
+          WebkitTextStroke: '0.08cqw rgba(0,0,0,0.55)',
+        }}
+      >
+        {overlay.text}
+      </span>
+    </div>
+  )
+}
 
 interface ContentRendererProps {
   content: DisplayContent | null
@@ -354,6 +399,10 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
                   className="h-full w-full object-contain"
                   draggable={false}
                 />
+              ) : null}
+
+              {content.type === 'image' && content.overlay ? (
+                <ImageTextOverlay overlay={content.overlay} />
               ) : null}
 
               {content.type === 'presentation' && content.urls && content.urls.length > 0 ? (

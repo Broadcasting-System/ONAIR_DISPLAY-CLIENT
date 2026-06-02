@@ -28,9 +28,23 @@ export type ScoreboardPayload = {
   teamB: TeamState
 }
 
+/** 현수막 이미지 위 텍스트 오버레이 — 점수보드 제목/부제목과 동일 폰트(Paperlogy).
+ *  size는 6845×552 디자인 px 기준. */
+export type BannerOverlay = {
+  title: string
+  subtitle: string
+  titleSize: number // 디자인 px
+  subtitleSize: number // 디자인 px
+  showSubtitle: boolean
+  color: string
+  position: 'top' | 'center' | 'bottom'
+  visible: boolean
+}
+
 export type ImagePayload = {
   url: string
   fit?: 'cover' | 'contain'
+  overlay?: BannerOverlay
 }
 
 export type GifPayload = {

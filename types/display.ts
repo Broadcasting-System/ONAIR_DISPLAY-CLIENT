@@ -11,6 +11,15 @@ export interface Playback {
   loop?: boolean // 반복 재생
 }
 
+/** 이미지 위 텍스트 오버레이 */
+export interface ImageOverlay {
+  text: string
+  size: number // 컨테이너 너비 대비 % (cqw)
+  color: string // hex
+  position: 'top' | 'center' | 'bottom'
+  visible: boolean
+}
+
 export interface DisplayContent {
   type: ContentType
   url?: string
@@ -21,6 +30,7 @@ export interface DisplayContent {
   serverTimestamp?: number
   playback?: Playback
   slideIndex?: number // 프레젠테이션 현재 슬라이드 (수동 전환)
+  overlay?: ImageOverlay // 이미지 텍스트 오버레이
 }
 
 export interface WebSocketMessage {
@@ -34,4 +44,5 @@ export interface WebSocketMessage {
   serverTimestamp?: number
   playback?: Playback
   slideIndex?: number
+  overlay?: ImageOverlay
 }
