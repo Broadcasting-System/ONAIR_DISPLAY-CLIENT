@@ -218,7 +218,16 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
     const isM3u8 = primary.includes('.m3u8')
 
     if (isM3u8 && Hls.isSupported()) {
-      hls = new Hls({ maxMaxBufferLength: 30, startPosition: initialPos() })
+      hls = new Hls({
+        enableWorker: true, // 세그먼트 디먹싱을 워커 스레드로 → 메인 스레드 부하/끊김 완화
+        startPosition: initialPos(),
+        maxBufferLength: 60, // 전방 60초 선버퍼 (같은 PC/LAN, CPU 스파이크 대비)
+        maxMaxBufferLength: 120,
+        backBufferLength: 30,
+        maxBufferSize: 200 * 1000 * 1000, // 고화질도 앞서 버퍼 가능하게 바이트 캡 상향
+        fragLoadingMaxRetry: 6,
+        manifestLoadingMaxRetry: 4,
+      })
       hlsRef.current = hls
       hls.loadSource(primary)
       hls.attachMedia(video)
