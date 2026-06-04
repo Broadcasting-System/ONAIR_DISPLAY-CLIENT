@@ -53,6 +53,35 @@ interface ContentRendererProps {
   onEnded: () => void
   isFullscreen: boolean
   isArmed: boolean
+  screenStream?: MediaStream | null
+}
+
+/** 화면 공유(WebRTC) 수신 스트림을 전체화면 비디오로 렌더 (소리 포함) */
+function ScreenView({ stream }: { stream?: MediaStream | null }) {
+  const ref = useRef<HTMLVideoElement>(null)
+  useEffect(() => {
+    const v = ref.current
+    if (!v) return
+    v.srcObject = stream ?? null
+    if (stream) v.play().catch(() => {})
+  }, [stream])
+  return (
+    <div className="relative w-full h-[100dvh] bg-black overflow-hidden">
+      <video
+        ref={ref}
+        autoPlay
+        playsInline
+        className="absolute inset-0 h-full w-full object-contain"
+      />
+      {!stream && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="font-pretendard text-white/50 text-lg">
+            화면 공유 연결 중…
+          </span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 type VideoState = 'loading' | 'playing' | 'error'
@@ -75,7 +104,7 @@ const posFromPlayback = (pb?: Playback | null): number | null => {
     : Math.max(0, pb.offset)
 }
 
-export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: ContentRendererProps) => {
+export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, screenStream }: ContentRendererProps) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(() => calculateSlideIndex(content))
   const [videoState, setVideoState] = useState<VideoState>('loading')
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -320,6 +349,10 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed }: Con
 
   if (!content || content.type === 'standby') {
     return <StandbyScreen isFullscreen={isFullscreen} />
+  }
+
+  if (content.type === 'screen') {
+    return <ScreenView stream={screenStream} />
   }
 
   if (content.type === 'audio') {

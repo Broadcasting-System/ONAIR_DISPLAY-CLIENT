@@ -6,11 +6,13 @@ import { ContentRenderer } from '@/components/display/ContentRenderer'
 import { EntryOverlay } from '@/components/display/EntryOverlay'
 import { useFullscreen } from '@/hooks/useFullscreen'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { useScreenReceiver } from '@/hooks/useScreenReceiver'
 import { backendBase } from '@/lib/backend'
 
 export default function DisplayPage() {
   const [isArmed, setIsArmed] = useState(false)
   const { content, clearContent } = useWebSocket(null)
+  const { stream: screenStream } = useScreenReceiver()
   const { isFullscreen, toggleFullscreen } = useFullscreen()
 
   const handleMediaEnded = useCallback(() => {
@@ -35,6 +37,7 @@ export default function DisplayPage() {
         onEnded={handleMediaEnded}
         isFullscreen={isFullscreen}
         isArmed={isArmed}
+        screenStream={screenStream}
       />
     </main>
   )

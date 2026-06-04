@@ -1,4 +1,4 @@
-export type ContentType = 'image' | 'video' | 'presentation' | 'audio' | 'standby'
+export type ContentType = 'image' | 'video' | 'presentation' | 'audio' | 'standby' | 'screen'
 
 export interface Playback {
   playing: boolean
