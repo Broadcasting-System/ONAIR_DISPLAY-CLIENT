@@ -74,8 +74,9 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
         } else {
           console.warn('Initial status fetch failed with status:', res.status)
         }
-      } catch (err) {
-        console.error('Failed to fetch initial status', err)
+      } catch {
+        // 보조용 초기 fetch — WebSocket 자동 재연결이 상태를 받아오므로 경고만.
+        console.warn('초기 상태 fetch 실패 — WebSocket 연결로 복구 시도')
       }
     }
 
