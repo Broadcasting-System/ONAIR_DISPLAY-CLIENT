@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   ScoreFlash,
+  CollideOverlay,
   VictoryOverlay,
   CourtChangeOverlay,
   AnnounceOverlay,
@@ -90,11 +91,43 @@ export function ScoreboardScene({
   } | null>(null)
   // 코트 체인지 1회 트리거 (마운트/새로고침 시엔 0이라 안 뜸)
   const [courtFx, setCourtFx] = useState(0)
+  // collide 득점 애니메이션: 화면 전체 중앙에 SCORE 합체 1회 트리거
+  const [collideFx, setCollideFx] = useState(0)
   const prevSetA = useRef(num(teamA?.set))
   const prevSetB = useRef(num(teamB?.set))
   const prevStatusKey = useRef('')
   const prevCourt = useRef(courtChangeAt)
   const mounted = useRef(false)
+  // collide 감지용 (메인 점수 증가 시, 코트체인지/새로고침은 제외)
+  const collideMounted = useRef(false)
+  const prevMainA = useRef(num(teamA?.score))
+  const prevMainB = useRef(num(teamB?.score))
+  const prevCourtC = useRef(courtChangeAt)
+
+  useEffect(() => {
+    const a = num(teamA?.score)
+    const b = num(teamB?.score)
+    if (!collideMounted.current) {
+      collideMounted.current = true
+      prevMainA.current = a
+      prevMainB.current = b
+      prevCourtC.current = courtChangeAt
+      return
+    }
+    // 코트 체인지로 인한 좌우 swap이면 무시
+    if (courtChangeAt !== prevCourtC.current) {
+      prevCourtC.current = courtChangeAt
+      prevMainA.current = a
+      prevMainB.current = b
+      return
+    }
+    if (scoreAnim === 'collide' && (a > prevMainA.current || b > prevMainB.current)) {
+      setCollideFx((k) => k + 1)
+    }
+    prevMainA.current = a
+    prevMainB.current = b
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamA?.score, teamB?.score, scoreAnim, courtChangeAt])
 
   const statusKey = status
     ? status.kind === 'deuce'
@@ -226,6 +259,9 @@ export function ScoreboardScene({
       {/* 코트 체인지 오버레이 — courtFx가 오를 때만 1회 (새로고침 시엔 안 뜸) */}
       {courtFx > 0 ? <CourtChangeOverlay key={`court-${courtFx}`} /> : null}
 
+      {/* collide 득점 — 화면 전체 중앙에 SC+ORE 합체 1회 */}
+      {collideFx > 0 ? <CollideOverlay key={`collide-${collideFx}`} /> : null}
+
       {/* 승리 오버레이 — victory가 있으면 표시 (at 변경 시 재발동) */}
       {victory ? (
         <VictoryOverlay key={`victory-${victory.at}`} side={victory.side} name={victory.name} />
@@ -298,6 +334,8 @@ function ScoreCluster({
   const lastCourt = useRef(courtChangeAt)
   const [flashKey, setFlashKey] = useState(0)
   const [flashing, setFlashing] = useState(false)
+  // collide 애니메이션: 합체 후 득점 측 메인 점수 하이라이트 펄스
+  const [highlight, setHighlight] = useState(0)
 
   // 카드에 실제로 표시하는 메인 점수. 득점 시엔 SCORE 플래시가 끝난 뒤에
   // 갱신해서 "SCORE 날아옴 → 그 다음 점수 넘김" 순서가 보이게 한다.
@@ -320,10 +358,16 @@ function ScoreCluster({
       setFlashing(true)
       const tFlash = setTimeout(() => setFlashing(false), 1400) // SCORE 종료
       const tFlip = setTimeout(() => setDisplayMain(main), 1620) // 카드 재등장 후 플립
+      // collide: 점수 플립 직후 득점 측 메인 점수 하이라이트
+      const tHi =
+        scoreAnim === 'collide'
+          ? setTimeout(() => setHighlight((h) => h + 1), 1660)
+          : undefined
       prev.current = main
       return () => {
         clearTimeout(tFlash)
         clearTimeout(tFlip)
+        if (tHi) clearTimeout(tHi)
       }
     }
     // 감소/수정/리셋: 플래시 취소하고 즉시 반영 (플래시 중 리셋해도 카드 안 사라지게)
@@ -332,8 +376,21 @@ function ScoreCluster({
     prev.current = main
   }, [main, courtChangeAt])
 
+  // 하이라이트 펄스: 리마운트 없이 애니메이션만 재시작(플립 끊김 방지)
+  const mainHiRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (highlight === 0) return
+    const el = mainHiRef.current
+    if (!el) return
+    el.style.animation = 'none'
+    void el.offsetWidth // 리플로우 강제 → 애니메이션 재시작
+    el.style.animation = 'bnScoreHi 950ms ease-out'
+  }, [highlight])
+
   const mainBlock = (
-    <FlipCounter key="main" value={displayMain} digits={2} scale={1} />
+    <div key="main" ref={mainHiRef} style={{ display: 'inline-block' }}>
+      <FlipCounter value={displayMain} digits={2} scale={1} />
+    </div>
   )
   const setBlock = showSet ? (
     <FlipCounter key="set" value={set} digits={1} scale={0.62} />
@@ -367,7 +424,10 @@ function ScoreCluster({
         {children}
       </div>
 
-      {flashing && <ScoreFlash key={flashKey} side={side} anim={scoreAnim} />}
+      {/* collide는 화면 전체 중앙 오버레이(루트)에서 렌더 → 여기선 제외 */}
+      {flashing && scoreAnim !== 'collide' && (
+        <ScoreFlash key={flashKey} side={side} anim={scoreAnim} />
+      )}
     </div>
   )
 }

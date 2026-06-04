@@ -6,7 +6,7 @@ export type TeamState = {
   set?: number // 세트 스코어 (획득 세트 수)
 }
 
-export type ScoreAnim = 'slamshine' | 'slam' | 'shine' | 'neon' | 'drop'
+export type ScoreAnim = 'slamshine' | 'slam' | 'shine' | 'neon' | 'drop' | 'collide'
 
 export type VictoryState = {
   side: 'left' | 'right'

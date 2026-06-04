@@ -2,7 +2,7 @@
 
 import { CSSProperties } from 'react'
 
-export type ScoreAnim = 'slamshine' | 'slam' | 'shine' | 'neon' | 'drop'
+export type ScoreAnim = 'slamshine' | 'slam' | 'shine' | 'neon' | 'drop' | 'collide'
 
 const SCORE_FONT: CSSProperties = {
   fontFamily: '"SDDystopianDemo", Orbitron, sans-serif',
@@ -236,6 +236,95 @@ function Drop() {
           {c}
         </span>
       ))}
+    </div>
+  )
+}
+
+/** collide 득점 오버레이 — 화면 전체 정중앙에 SCORE 합체 (좌/우 영역 아님) */
+export function CollideOverlay() {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 43,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+        overflow: 'hidden',
+      }}
+    >
+      {/* 가독성용 옅은 중앙 비네팅 */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(ellipse 40% 90% at center, rgba(0,0,0,0.45) 0%, transparent 70%)',
+          animation: 'bnHold 1600ms ease-out forwards',
+        }}
+      />
+      <div style={{ position: 'relative', animation: 'bnHold 1600ms ease-out forwards' }}>
+        <CollideWord />
+      </div>
+    </div>
+  )
+}
+
+/** SC(왼쪽)·ORE(오른쪽)가 날아와 가운데서 콱 부딪혀 SCORE로 합체 + 충돌 플래시 */
+function CollideWord() {
+  return (
+    <div
+      style={{
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'center',
+        animation: 'bnCollideShake 320ms 360ms ease-out',
+      }}
+    >
+      {/* 충돌 플래시 */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          width: '55%',
+          height: '130%',
+          transform: 'translate(-50%,-50%)',
+          borderRadius: '50%',
+          background:
+            'radial-gradient(ellipse at center, rgba(255,255,255,0.55) 0%, rgba(125,255,176,0.35) 35%, transparent 65%)',
+          opacity: 0,
+          animation: 'bnAnnFlash 520ms 360ms ease-out forwards',
+        }}
+      />
+      <span
+        style={{
+          ...SCORE_FONT,
+          display: 'inline-block',
+          color: '#fff',
+          textShadow: GREEN_GLOW,
+          opacity: 0,
+          animation: 'bnCollideL 560ms cubic-bezier(0.18,0.85,0.2,1) forwards',
+        }}
+      >
+        SC
+      </span>
+      <span
+        style={{
+          ...SCORE_FONT,
+          display: 'inline-block',
+          color: '#fff',
+          textShadow: GREEN_GLOW,
+          opacity: 0,
+          animation: 'bnCollideR 560ms cubic-bezier(0.18,0.85,0.2,1) forwards',
+        }}
+      >
+        ORE
+      </span>
     </div>
   )
 }
@@ -620,6 +709,36 @@ export function ScoreboardAnimKeyframes() {
       }
       @keyframes bnAnnHold {
         0% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; }
+      }
+
+      /* collide: SC 왼쪽 끝 / ORE 오른쪽 끝(디자인 px)에서 날아와 정중앙 충돌(오버슈트)→합체 */
+      @keyframes bnCollideL {
+        0%   { opacity: 0; transform: translateX(-3600px) rotate(-8deg); }
+        55%  { opacity: 1; }
+        68%  { transform: translateX(30px) rotate(3deg); }   /* 중앙 넘어 부딪힘 */
+        82%  { transform: translateX(-8px) rotate(-1deg); }
+        100% { opacity: 1; transform: translateX(0) rotate(0); }
+      }
+      @keyframes bnCollideR {
+        0%   { opacity: 0; transform: translateX(3600px) rotate(8deg); }
+        55%  { opacity: 1; }
+        68%  { transform: translateX(-30px) rotate(-3deg); }
+        82%  { transform: translateX(8px) rotate(1deg); }
+        100% { opacity: 1; transform: translateX(0) rotate(0); }
+      }
+      @keyframes bnCollideShake {
+        0% { transform: translate(0,0); }
+        25% { transform: translate(0,-7px); }
+        50% { transform: translate(0,4px); }
+        75% { transform: translate(0,-2px); }
+        100% { transform: translate(0,0); }
+      }
+
+      /* 득점 측 점수 하이라이트 펄스 (collide 전용) */
+      @keyframes bnScoreHi {
+        0%   { transform: scale(1); filter: drop-shadow(0 0 0 rgba(125,255,176,0)); }
+        22%  { transform: scale(1.14); filter: drop-shadow(0 0 48px rgba(125,255,176,0.95)); }
+        100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(125,255,176,0)); }
       }
     `}</style>
   )
