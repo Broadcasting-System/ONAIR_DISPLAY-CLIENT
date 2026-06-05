@@ -19,16 +19,17 @@ export function backendBase(): string {
   return 'http://127.0.0.1:8000'
 }
 
-/** WebSocket 주소 (http→ws 변환 + 경로). channel 주어지면 ?channel=N 부착. */
-export function backendWs(path: string, channel?: number): string {
+/** WebSocket 주소 (http→ws 변환 + 경로). channel/role 주어지면 쿼리로 부착. */
+export function backendWs(path: string, channel?: number, role?: string): string {
   // 명시적 WS override 우선
   const override = process.env.NEXT_PUBLIC_WS_URL
   const base =
     override && override.trim() && path === '/api/display/ws'
       ? override
       : backendBase().replace(/^http/, 'ws') + path
-  if (channel && channel > 1) {
-    return base + (base.includes('?') ? '&' : '?') + `channel=${channel}`
-  }
-  return base
+  const params: string[] = []
+  if (channel && channel > 1) params.push(`channel=${channel}`)
+  if (role) params.push(`role=${role}`)
+  if (params.length === 0) return base
+  return base + (base.includes('?') ? '&' : '?') + params.join('&')
 }

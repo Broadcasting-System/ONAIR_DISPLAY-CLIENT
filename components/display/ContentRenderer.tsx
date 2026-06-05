@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Hls from 'hls.js'
 import { DisplayContent, Playback, ImageOverlay } from '@/types/display'
 import { StandbyScreen } from './StandbyScreen'
+import { CountdownView } from '@/components/CountdownView'
 
 /** 이미지 위 텍스트 오버레이 — 부모(16:9 박스)의 컨테이너 너비(cqw) 기준으로 크기 결정 */
 function ImageTextOverlay({ overlay }: { overlay: ImageOverlay }) {
@@ -353,6 +354,17 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, scree
 
   if (content.type === 'screen') {
     return <ScreenView stream={screenStream} />
+  }
+
+  if (content.type === 'timer') {
+    return (
+      <CountdownView
+        serverTimestamp={content.serverTimestamp}
+        durationSec={content.durationSec}
+        mode={content.mode}
+        label={content.label}
+      />
+    )
   }
 
   if (content.type === 'audio') {

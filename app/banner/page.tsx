@@ -13,7 +13,7 @@ function BannerInner() {
   const safe = params.get('safe') === '1'
   // 컨트롤 미리보기 iframe은 ?role=control 로 열어 LIVE 카운트를 부풀리지 않게 한다.
   const role = params.get('role') === 'control' ? 'control' : 'display'
-  const { state, isConnected } = useBannerSocket(role)
+  const { state, isConnected, serverTimestamp } = useBannerSocket(role)
 
   // 송출 중 마우스가 멈추면 커서 자동 숨김 (debug일 땐 유지)
   const cursorHidden = useIdleCursor(2000, debug)
@@ -51,7 +51,7 @@ function BannerInner() {
       }}
     >
       <BannerStage mode="broadcast" debug={debug}>
-        <SceneRenderer state={state} />
+        <SceneRenderer state={state} serverTimestamp={serverTimestamp} />
       </BannerStage>
 
       {/* 안전 영역 가이드 (?safe=1) — 현수막 가장자리 잘림 대비 */}

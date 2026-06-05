@@ -1,4 +1,4 @@
-export type ContentType = 'image' | 'video' | 'presentation' | 'audio' | 'standby' | 'screen'
+export type ContentType = 'image' | 'video' | 'presentation' | 'audio' | 'standby' | 'screen' | 'timer'
 
 export interface Playback {
   playing: boolean
@@ -31,6 +31,10 @@ export interface DisplayContent {
   playback?: Playback
   slideIndex?: number // 프레젠테이션 현재 슬라이드 (수동 전환)
   overlay?: ImageOverlay // 이미지 텍스트 오버레이
+  // 타이머(type==='timer')
+  label?: string
+  durationSec?: number
+  mode?: 'down' | 'up'
 }
 
 export interface WebSocketMessage {
@@ -45,4 +49,7 @@ export interface WebSocketMessage {
   playback?: Playback
   slideIndex?: number
   overlay?: ImageOverlay
+  label?: string
+  durationSec?: number
+  mode?: 'down' | 'up'
 }

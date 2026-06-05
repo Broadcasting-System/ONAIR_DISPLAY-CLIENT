@@ -1,4 +1,4 @@
-export type BannerScene = 'blank' | 'image' | 'gif' | 'scoreboard'
+export type BannerScene = 'blank' | 'image' | 'gif' | 'scoreboard' | 'timer'
 
 export type TeamState = {
   name?: string
@@ -51,11 +51,19 @@ export type GifPayload = {
   url: string
 }
 
+export type TimerPayload = {
+  durationSec: number
+  label?: string
+  mode?: 'down' | 'up'
+  color?: string
+}
+
 export type BannerPayloadByScene = {
   blank: Record<string, never>
   image: ImagePayload
   gif: GifPayload
   scoreboard: ScoreboardPayload
+  timer: TimerPayload
 }
 
 export type BannerState =
@@ -63,6 +71,7 @@ export type BannerState =
   | { scene: 'image'; payload: ImagePayload }
   | { scene: 'gif'; payload: GifPayload }
   | { scene: 'scoreboard'; payload: ScoreboardPayload }
+  | { scene: 'timer'; payload: TimerPayload }
 
 export type BannerWsMessage = {
   command: 'banner'

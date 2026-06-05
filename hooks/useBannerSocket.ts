@@ -18,6 +18,7 @@ export function useBannerSocket(role: 'display' | 'control' = 'display') {
     process.env.NEXT_PUBLIC_BANNER_WS_URL || backendWs('/api/banner/ws')
   const WS_URL = `${WS_BASE}?role=${role}`
   const [state, setState] = useState<BannerState>(DEFAULT_BANNER_STATE)
+  const [serverTimestamp, setServerTimestamp] = useState<number | undefined>(undefined)
   const [isConnected, setIsConnected] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
 
@@ -31,6 +32,7 @@ export function useBannerSocket(role: 'display' | 'control' = 'display') {
       .then((data) => {
         if (cancelled || !data?.scene) return
         setState({ scene: data.scene, payload: data.payload ?? {} } as BannerState)
+        setServerTimestamp(data.serverTimestamp)
       })
       .catch(() => {})
 
@@ -53,6 +55,7 @@ export function useBannerSocket(role: 'display' | 'control' = 'display') {
             scene: msg.scene,
             payload: (msg.payload ?? {}) as never,
           } as BannerState)
+          setServerTimestamp(msg.serverTimestamp)
         } catch (err) {
           console.error('Failed to parse banner WS message', err)
         }
@@ -68,5 +71,5 @@ export function useBannerSocket(role: 'display' | 'control' = 'display') {
     }
   }, [])
 
-  return { state, isConnected }
+  return { state, isConnected, serverTimestamp }
 }

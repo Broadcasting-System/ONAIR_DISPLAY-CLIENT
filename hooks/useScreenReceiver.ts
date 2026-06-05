@@ -4,7 +4,7 @@ import { backendWs } from '@/lib/backend'
 type Signal = {
   command: 'webrtc'
   from: string
-  kind: 'offer' | 'answer' | 'ice'
+  kind: 'offer' | 'answer' | 'ice' | 'hello'
   sdp?: RTCSessionDescriptionInit
   candidate?: RTCIceCandidateInit
 }
@@ -74,8 +74,12 @@ export function useScreenReceiver(channel: number = 1) {
     }
 
     const connect = () => {
-      const ws = new WebSocket(backendWs('/api/display/ws', channel))
+      const ws = new WebSocket(backendWs('/api/display/ws', channel, 'signal'))
       wsRef.current = ws
+      ws.onopen = () => {
+        // 공유가 이미 진행 중일 수 있으니 "나 왔다" 알려 컨트롤이 offer를 재전송하게 함
+        send({ command: 'webrtc', from: 'display', kind: 'hello' })
+      }
       ws.onmessage = (ev) => {
         let m: Signal
         try { m = JSON.parse(ev.data) } catch { return }

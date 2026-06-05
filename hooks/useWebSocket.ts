@@ -74,6 +74,9 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
               playback: data.playback,
               slideIndex: data.slideIndex,
               overlay: data.overlay,
+              label: data.label,
+              durationSec: data.durationSec,
+              mode: data.mode,
             })
           }
         } else {
@@ -87,8 +90,10 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
 
     fetchInitialStatus()
 
+    let pingTimer: ReturnType<typeof setInterval> | undefined
+
     const connect = () => {
-      const wsUrl = backendWs('/api/display/ws', channel)
+      const wsUrl = backendWs('/api/display/ws', channel, 'display')
 
       console.log('Connecting to WebSocket:', wsUrl)
       const ws = new WebSocket(wsUrl)
@@ -97,10 +102,16 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
       ws.onopen = () => {
         console.log('WebSocket connected')
         setIsConnected(true)
+        // 헬스체크용 하트비트 — 송출 화면 생존 신호
+        if (pingTimer) clearInterval(pingTimer)
+        pingTimer = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping' }))
+        }, 5000)
       }
       ws.onclose = () => {
         console.warn('WebSocket disconnected, reconnecting...')
         setIsConnected(false)
+        if (pingTimer) clearInterval(pingTimer)
         reconnectTimer = setTimeout(connect, 3000)
       }
       ws.onerror = () => {
@@ -151,6 +162,9 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
                 playback: message.playback,
                 slideIndex: message.slideIndex,
                 overlay: message.overlay,
+                label: message.label,
+                durationSec: message.durationSec,
+                mode: message.mode,
               }
             })
           }
@@ -164,6 +178,7 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
 
     return () => {
       clearTimeout(reconnectTimer)
+      if (pingTimer) clearInterval(pingTimer)
       if (wsRef.current) {
         wsRef.current.close()
       }
