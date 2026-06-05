@@ -15,7 +15,7 @@ const RTC_CONFIG: RTCConfiguration = {
 
 /** 송출(프로젝터) 측 화면 공유 수신기.
  *  전용 시그널링 WS로 컨트롤의 offer를 받아 answer하고, 받은 MediaStream을 반환. */
-export function useScreenReceiver() {
+export function useScreenReceiver(channel: number = 1) {
   const [stream, setStream] = useState<MediaStream | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const pcRef = useRef<RTCPeerConnection | null>(null)
@@ -74,7 +74,7 @@ export function useScreenReceiver() {
     }
 
     const connect = () => {
-      const ws = new WebSocket(backendWs('/api/display/ws'))
+      const ws = new WebSocket(backendWs('/api/display/ws', channel))
       wsRef.current = ws
       ws.onmessage = (ev) => {
         let m: Signal
@@ -97,7 +97,7 @@ export function useScreenReceiver() {
       teardownPc()
       if (wsRef.current) { try { wsRef.current.close() } catch {} }
     }
-  }, [])
+  }, [channel])
 
   return { stream }
 }

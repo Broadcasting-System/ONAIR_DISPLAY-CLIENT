@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { DisplayContent, WebSocketMessage, ContentType } from '@/types/display'
 import { backendBase, backendWs } from '@/lib/backend'
 
-export const useWebSocket = (initialState: DisplayContent | null) => {
+export const useWebSocket = (initialState: DisplayContent | null, channel: number = 1) => {
   const [content, setContent] = useState<DisplayContent | null>(initialState)
   const [isConnected, setIsConnected] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
@@ -50,10 +50,15 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
       return { ...data, url: finalUrl, urls: finalUrls, fallbackUrl }
     }
 
+    const statusUrl =
+      channel > 1
+        ? `${BASE}/api/display/status?channel=${channel}`
+        : `${BASE}/api/display/status`
+
     const fetchInitialStatus = async () => {
-      console.log('Fetching initial status from:', `${BASE}/api/display/status`)
+      console.log('Fetching initial status from:', statusUrl)
       try {
-        const res = await fetch(`${BASE}/api/display/status`)
+        const res = await fetch(statusUrl)
         if (res.ok) {
           const data = await res.json()
           console.log('Initial status received:', data)
@@ -83,7 +88,7 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
     fetchInitialStatus()
 
     const connect = () => {
-      const wsUrl = backendWs('/api/display/ws')
+      const wsUrl = backendWs('/api/display/ws', channel)
 
       console.log('Connecting to WebSocket:', wsUrl)
       const ws = new WebSocket(wsUrl)
@@ -163,7 +168,7 @@ export const useWebSocket = (initialState: DisplayContent | null) => {
         wsRef.current.close()
       }
     }
-  }, [])
+  }, [channel])
 
   const clearContent = useCallback(() => {
     setContent(null)
