@@ -96,14 +96,15 @@ export function YouTubePlayer({
         height: '100%',
         playerVars: {
           autoplay: 1,
-          controls: 0,
+          controls: 0, // 컨트롤바 숨김
           mute: 1, // 자동재생 보장(음소거로 시작, 서버 playback.muted 로 제어)
-          rel: 0,
+          rel: 0, // 관련영상 최소화
           modestbranding: 1,
           playsinline: 1,
           fs: 0,
           disablekb: 1,
-          iv_load_policy: 3,
+          iv_load_policy: 3, // 주석/카드 숨김
+          cc_load_policy: 0, // 자막 자동표시 끔
         },
         events: {
           onReady: (e: any) => {
@@ -174,8 +175,10 @@ export function YouTubePlayer({
   }, [playback])
 
   return (
-    <div className="h-full w-full bg-black">
+    <div className="relative h-full w-full bg-black">
       <div ref={hostRef} className="h-full w-full" />
+      {/* 마우스 hover 시 뜨는 유튜브 제목/컨트롤 UI를 가리는 투명 오버레이 */}
+      <div className="absolute inset-0 z-10" />
     </div>
   )
 }
