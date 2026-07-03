@@ -3,6 +3,7 @@ import Hls from 'hls.js'
 import { DisplayContent, Playback, ImageOverlay } from '@/types/display'
 import { StandbyScreen } from './StandbyScreen'
 import { CountdownView } from '@/components/CountdownView'
+import { YouTubePlayer } from './YouTubePlayer'
 
 /** 이미지 위 텍스트 오버레이 — 부모(16:9 박스)의 컨테이너 너비(cqw) 기준으로 크기 결정 */
 function ImageTextOverlay({ overlay }: { overlay: ImageOverlay }) {
@@ -365,6 +366,10 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, scree
         label={content.label}
       />
     )
+  }
+
+  if (content.type === 'youtube' && content.videoId) {
+    return <YouTubePlayer videoId={content.videoId} playback={content.playback} onEnded={onEnded} />
   }
 
   if (content.type === 'audio') {

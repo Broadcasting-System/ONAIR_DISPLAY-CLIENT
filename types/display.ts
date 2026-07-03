@@ -1,4 +1,4 @@
-export type ContentType = 'image' | 'video' | 'presentation' | 'audio' | 'standby' | 'screen' | 'timer'
+export type ContentType = 'image' | 'video' | 'presentation' | 'audio' | 'standby' | 'screen' | 'timer' | 'youtube'
 
 export interface Playback {
   playing: boolean
@@ -35,6 +35,8 @@ export interface DisplayContent {
   label?: string
   durationSec?: number
   mode?: 'down' | 'up'
+  // 유튜브(type==='youtube')
+  videoId?: string
 }
 
 export interface WebSocketMessage {
@@ -52,4 +54,5 @@ export interface WebSocketMessage {
   label?: string
   durationSec?: number
   mode?: 'down' | 'up'
+  videoId?: string
 }

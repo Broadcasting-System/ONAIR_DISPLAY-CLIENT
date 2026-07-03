@@ -77,6 +77,7 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
               label: data.label,
               durationSec: data.durationSec,
               mode: data.mode,
+              videoId: data.videoId,
             })
           }
         } else {
@@ -142,6 +143,7 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
                 // 재생제어(playback)·슬라이드 변경은 무시하지 않음
                 JSON.stringify(prev.playback) === JSON.stringify(message.playback) &&
                 prev.slideIndex === message.slideIndex &&
+                prev.videoId === message.videoId &&
                 JSON.stringify(prev.overlay) === JSON.stringify(message.overlay)
               ) {
                 console.log('Redundant content update ignored')
@@ -165,6 +167,7 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
                 label: message.label,
                 durationSec: message.durationSec,
                 mode: message.mode,
+                videoId: message.videoId,
               }
             })
           }
