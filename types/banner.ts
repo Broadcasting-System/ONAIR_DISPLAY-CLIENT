@@ -1,4 +1,4 @@
-export type BannerScene = 'blank' | 'image' | 'gif' | 'scoreboard' | 'timer'
+export type BannerScene = 'blank' | 'image' | 'gif' | 'scoreboard' | 'timer' | 'default'
 
 export type TeamState = {
   name?: string
@@ -58,12 +58,20 @@ export type TimerPayload = {
   color?: string
 }
 
+/** 기본(동계캠프) 현수막 — 고정 배경 위 메인/서브1/서브2 텍스트만 편집 */
+export type DefaultBannerPayload = {
+  mainText: string
+  subText1: string
+  subText2: string
+}
+
 export type BannerPayloadByScene = {
   blank: Record<string, never>
   image: ImagePayload
   gif: GifPayload
   scoreboard: ScoreboardPayload
   timer: TimerPayload
+  default: DefaultBannerPayload
 }
 
 export type BannerState =
@@ -72,6 +80,7 @@ export type BannerState =
   | { scene: 'gif'; payload: GifPayload }
   | { scene: 'scoreboard'; payload: ScoreboardPayload }
   | { scene: 'timer'; payload: TimerPayload }
+  | { scene: 'default'; payload: DefaultBannerPayload }
 
 export type BannerWsMessage = {
   command: 'banner'
