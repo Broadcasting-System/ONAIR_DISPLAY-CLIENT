@@ -1,9 +1,11 @@
 'use client'
 
 import type { ImagePayload } from '@/types/banner'
+import { resolveMediaUrl } from '@/lib/backend'
 
 export function ImageScene({ url, fit = 'cover', overlay }: ImagePayload) {
   if (!url) return null
+  const src = resolveMediaUrl(url)
   const hasTitle = !!overlay?.title?.trim()
   const hasSub = !!overlay?.showSubtitle && !!overlay?.subtitle?.trim()
   const showText = !!overlay?.visible && (hasTitle || hasSub)
@@ -30,7 +32,7 @@ export function ImageScene({ url, fit = 'cover', overlay }: ImagePayload) {
       {/* 6845x552 캔버스에 맞춰 그대로 렌더. img 태그가 next/image보다 풀-블리드에 단순. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={url}
+        src={src}
         alt=""
         style={{
           width: '100%',

@@ -4,6 +4,7 @@ import { DisplayContent, Playback, ImageOverlay } from '@/types/display'
 import { StandbyScreen } from './StandbyScreen'
 import { CountdownView } from '@/components/CountdownView'
 import { YouTubePlayer } from './YouTubePlayer'
+import { resolveMediaUrl } from '@/lib/backend'
 
 /** 이미지 위 텍스트 오버레이 — 부모(16:9 박스)의 컨테이너 너비(cqw) 기준으로 크기 결정 */
 function ImageTextOverlay({ overlay }: { overlay: ImageOverlay }) {
@@ -181,8 +182,8 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, scree
       return
     }
     const video = videoRef.current
-    const primary = content.url
-    const fallback = content.fallbackUrl
+    const primary = resolveMediaUrl(content.url)
+    const fallback = content.fallbackUrl ? resolveMediaUrl(content.fallbackUrl) : content.fallbackUrl
     const serverTs = content.serverTimestamp
 
     let hls: Hls | null = null
@@ -377,7 +378,7 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, scree
       <>
         <StandbyScreen isAudioPlaying isFullscreen={isFullscreen} />
         {content.url ? (
-          <audio src={content.url} autoPlay onEnded={onEnded} className="hidden" />
+          <audio src={resolveMediaUrl(content.url)} autoPlay onEnded={onEnded} className="hidden" />
         ) : null}
       </>
     )
@@ -453,7 +454,7 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, scree
             >
               {content.type === 'image' && content.url ? (
                 <img
-                  src={content.url}
+                  src={resolveMediaUrl(content.url)}
                   alt="Broadcast Image"
                   className="h-full w-full object-contain"
                   draggable={false}
@@ -473,7 +474,7 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, scree
                       : currentSlideIndex
                   return (
                     <img
-                      src={content.urls[idx]}
+                      src={resolveMediaUrl(content.urls[idx])}
                       alt={`Broadcast Slide ${idx + 1}`}
                       className="h-full w-full object-contain"
                       draggable={false}

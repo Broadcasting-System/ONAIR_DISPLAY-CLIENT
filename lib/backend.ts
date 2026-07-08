@@ -19,6 +19,22 @@ export function backendBase(): string {
   return 'http://127.0.0.1:8000'
 }
 
+/** 저장된 파일 URL을 '보는 기기 기준' 서버 주소로 재해석.
+ *  봇/컨트롤이 어떤 호스트(127.0.0.1, LAN IP 등)로 저장했든, 우리 파일 경로(/api/files, /uploads)면
+ *  backendBase() 호스트로 교체 → 프로젝터/원격 어디서 봐도 로드됨. 외부 URL(유튜브 등)은 그대로. */
+export function resolveMediaUrl(url?: string | null): string {
+  if (!url) return ''
+  try {
+    const u = new URL(url, backendBase())
+    if (u.pathname.startsWith('/api/files/') || u.pathname.startsWith('/uploads/')) {
+      return backendBase() + u.pathname + u.search
+    }
+    return url
+  } catch {
+    return url
+  }
+}
+
 /** WebSocket 주소 (http→ws 변환 + 경로). channel/role 주어지면 쿼리로 부착. */
 export function backendWs(path: string, channel?: number, role?: string): string {
   // 명시적 WS override 우선
