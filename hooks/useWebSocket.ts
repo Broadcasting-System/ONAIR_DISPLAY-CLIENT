@@ -9,6 +9,10 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
 
   useEffect(() => {
     let reconnectTimer: NodeJS.Timeout
+    // effect가 정리된 뒤(채널 변경·언마운트) 옛 소켓의 onclose가 옛 채널로 재연결하지 않게
+    let cancelled = false
+    // 소켓이 먼저 상태를 줬으면 늦게 온 초기 fetch 결과로 덮어쓰지 않는다
+    let gotSocketState = false
     const BASE = backendBase()
 
     const resolveUrls = (data: Partial<WebSocketMessage>) => {
@@ -62,6 +66,7 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
         if (res.ok) {
           const data = await res.json()
           console.log('Initial status received:', data)
+          if (cancelled || gotSocketState) return
           if (data && data.type && data.type !== 'standby') {
             const resolved = resolveUrls(data)
             setContent({
@@ -94,6 +99,7 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
     let pingTimer: ReturnType<typeof setInterval> | undefined
 
     const connect = () => {
+      if (cancelled) return
       const wsUrl = backendWs('/api/display/ws', channel, 'display')
 
       console.log('Connecting to WebSocket:', wsUrl)
@@ -110,9 +116,10 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
         }, 5000)
       }
       ws.onclose = () => {
+        if (pingTimer) clearInterval(pingTimer)
+        if (cancelled) return
         console.warn('WebSocket disconnected, reconnecting...')
         setIsConnected(false)
-        if (pingTimer) clearInterval(pingTimer)
         reconnectTimer = setTimeout(connect, 3000)
       }
       ws.onerror = () => {
@@ -122,10 +129,12 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
       }
 
       ws.onmessage = (event) => {
+        if (cancelled) return
         try {
           const message: WebSocketMessage = JSON.parse(event.data)
           console.log('WS message received:', message)
           if (message.command === 'display') {
+            gotSocketState = true
             if (message.type === 'standby') {
               setContent(null)
               return
@@ -134,8 +143,14 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
             const resolved = resolveUrls(message)
 
             setContent((prev) => {
+              // 새로 보낸 송출은 서버 시각(serverTimestamp)이 달라진다 — 같은 타이머를
+              // 다시 보내 재시작하거나 다른 길이로 바꿔도 무시되지 않게 비교에 넣는다.
               if (
                 prev &&
+                prev.serverTimestamp === resolved.serverTimestamp &&
+                prev.label === message.label &&
+                prev.durationSec === message.durationSec &&
+                prev.mode === message.mode &&
                 prev.type === resolved.type &&
                 prev.url === resolved.url &&
                 JSON.stringify(prev.urls) === JSON.stringify(resolved.urls || []) &&
@@ -180,6 +195,7 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
     connect()
 
     return () => {
+      cancelled = true
       clearTimeout(reconnectTimer)
       if (pingTimer) clearInterval(pingTimer)
       if (wsRef.current) {
