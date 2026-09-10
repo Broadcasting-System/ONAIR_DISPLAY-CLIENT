@@ -126,7 +126,6 @@ export function ScoreboardScene({
     }
     prevMainA.current = a
     prevMainB.current = b
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamA?.score, teamB?.score, scoreAnim, courtChangeAt])
 
   const statusKey = status
@@ -341,6 +340,9 @@ function ScoreCluster({
   // 갱신해서 "SCORE 날아옴 → 그 다음 점수 넘김" 순서가 보이게 한다.
   const [displayMain, setDisplayMain] = useState(main)
 
+  // 점수 변화에 맞춰 플래시·플립 순서를 연출하는 effect — 타이머로 단계를 이어 가므로
+  // 상태 변경을 effect 안에서 하는 것이 의도된 동작이다.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     // 코트 체인지로 인한 변경이면 SCORE 플래시 없이 즉시 반영
     if (courtChangeAt !== lastCourt.current) {
@@ -375,6 +377,7 @@ function ScoreCluster({
     setDisplayMain(main)
     prev.current = main
   }, [main, courtChangeAt])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // 하이라이트 펄스: 리마운트 없이 애니메이션만 재시작(플립 끊김 방지)
   const mainHiRef = useRef<HTMLDivElement>(null)

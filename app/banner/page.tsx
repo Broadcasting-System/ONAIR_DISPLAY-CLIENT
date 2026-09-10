@@ -84,10 +84,7 @@ function useIdleCursor(delay: number, disabled: boolean) {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
-    if (disabled) {
-      setIdle(false)
-      return
-    }
+    if (disabled) return
     const reset = () => {
       setIdle(false)
       if (timer.current) clearTimeout(timer.current)
@@ -101,7 +98,8 @@ function useIdleCursor(delay: number, disabled: boolean) {
     }
   }, [delay, disabled])
 
-  return idle
+  // 디버그(disabled)면 항상 커서 표시 — 상태를 바꾸지 않고 파생값으로
+  return !disabled && idle
 }
 
 function SafeAreaGuide() {

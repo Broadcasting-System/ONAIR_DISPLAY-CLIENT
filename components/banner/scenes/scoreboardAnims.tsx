@@ -14,7 +14,6 @@ const SCORE_FONT: CSSProperties = {
 }
 
 const GREEN_GLOW = '0 0 60px rgba(80,255,160,0.95), 0 8px 28px rgba(0,0,0,0.75)'
-const GOLD_GLOW = '0 0 70px rgba(255,225,77,0.9), 0 8px 30px rgba(0,0,0,0.85)'
 
 /* =========================== 득점 애니메이션 =========================== */
 

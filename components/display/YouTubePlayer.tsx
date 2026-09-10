@@ -72,9 +72,12 @@ export function YouTubePlayer({
   const playerRef = useRef<any>(null)
   const readyRef = useRef(false)
   const pbRef = useRef(playback)
-  pbRef.current = playback
   const onEndedRef = useRef(onEnded)
-  onEndedRef.current = onEnded
+  // 플레이어 콜백이 늘 최신 값을 보도록 — 렌더 중이 아니라 커밋 뒤에 갱신 (아래 effect들보다 먼저 실행)
+  useEffect(() => {
+    pbRef.current = playback
+    onEndedRef.current = onEnded
+  })
 
   // videoId 바뀌면 플레이어 재생성
   useEffect(() => {
@@ -155,6 +158,8 @@ export function YouTubePlayer({
       }, 4000)
     })
 
+    // 정리 시점엔 ref가 바뀌어 있을 수 있어 지금의 DOM 노드를 잡아 둔다
+    const host = hostRef.current
     return () => {
       cancelled = true
       if (syncTimer) clearInterval(syncTimer)
@@ -165,7 +170,7 @@ export function YouTubePlayer({
       }
       playerRef.current = null
       readyRef.current = false
-      if (hostRef.current) hostRef.current.innerHTML = ''
+      if (host) host.innerHTML = ''
     }
   }, [videoId])
 

@@ -116,11 +116,10 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, scree
 
   // 최신 playback을 미디어-로드 effect에서 참조하기 위한 ref (URL 변경 시에만 reload)
   const playbackRef = useRef<Playback | null | undefined>(content?.playback)
-  playbackRef.current = content?.playback
 
   // playback 적용 함수 (항상 최신 클로저)
   const applyRef = useRef<(v: HTMLVideoElement, pb: Playback) => void>(() => {})
-  applyRef.current = (video, pb) => {
+  const applyPlayback = (video: HTMLVideoElement, pb: Playback) => {
     if (!pb) return
     video.volume = typeof pb.volume === 'number' ? pb.volume : 1
     video.muted = !!pb.muted
@@ -160,6 +159,12 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, scree
     }
   }
 
+  // 최신 playback·적용 함수를 ref에 — 렌더 중이 아니라 커밋 뒤에(아래 effect들보다 먼저) 갱신
+  useEffect(() => {
+    playbackRef.current = content?.playback
+    applyRef.current = applyPlayback
+  })
+
   // ---- 프레젠테이션 슬라이드 동기화 (기존) ----
   useEffect(() => {
     if (!isArmed || content?.type !== 'presentation' || !content.urls || !content.duration || !content.serverTimestamp) {
@@ -192,6 +197,8 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, scree
     let recover = 0
     let applied = false
 
+    // 새 영상 소스를 붙이는 순간 '로딩'으로 되돌린다 — 외부(비디오 요소) 연결에 맞춘 의도된 상태 변경
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVideoState('loading')
 
     const initialPos = () => {
