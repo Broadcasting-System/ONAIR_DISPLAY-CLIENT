@@ -69,6 +69,8 @@ export function useBannerSocket(role: 'display' | 'control' = 'display') {
       if (reconnectTimer) clearTimeout(reconnectTimer)
       wsRef.current?.close()
     }
+    // 주소는 처음 연결할 때 한 번만 정한다 (렌더마다 같은 값)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return { state, isConnected, serverTimestamp }

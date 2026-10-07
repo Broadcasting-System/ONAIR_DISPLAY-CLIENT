@@ -45,3 +45,8 @@ body {
   margin: 0;
   padding: 0;
 }
+/* 서버 PC 화면 녹화 창(?role=recorder) — 마우스 커서가 녹화되지 않게 */
+.recorder,
+.recorder * {
+  cursor: none !important;
+}

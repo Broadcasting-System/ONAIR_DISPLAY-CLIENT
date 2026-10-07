@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- 송출 이미지는 서버가 주는 임의 주소라 next/image 최적화를 쓰지 않는다 */
 import { useEffect, useRef, useState } from 'react'
 import Hls from 'hls.js'
 import { DisplayContent, Playback, ImageOverlay } from '@/types/display'
@@ -198,7 +199,6 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, scree
     let applied = false
 
     // 새 영상 소스를 붙이는 순간 '로딩'으로 되돌린다 — 외부(비디오 요소) 연결에 맞춘 의도된 상태 변경
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVideoState('loading')
 
     const initialPos = () => {
@@ -348,6 +348,8 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, scree
       if (hls) hls.destroy()
       hlsRef.current = null
     }
+    // 영상 주소가 바뀔 때만 다시 불러온다 — 재생 위치·종류는 ref 로 최신 값을 읽는다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content?.url, content?.fallbackUrl, isArmed, onEnded])
 
   // ---- 재생제어 적용: playback 변경 시 (reload 없이 play/pause/seek/volume) ----

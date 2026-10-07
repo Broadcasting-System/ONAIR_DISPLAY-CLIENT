@@ -2,7 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { DisplayContent, WebSocketMessage, ContentType } from '@/types/display'
 import { backendBase, backendWs } from '@/lib/backend'
 
-export const useWebSocket = (initialState: DisplayContent | null, channel: number = 1) => {
+/** role: display = 실제 송출 화면(LIVE 로 센다) · control = 미리보기 · recorder = 서버 PC 의 화면 녹화 창 */
+export type DisplayRole = 'display' | 'control' | 'recorder'
+
+export const useWebSocket = (
+  initialState: DisplayContent | null,
+  channel: number = 1,
+  role: DisplayRole = 'display',
+) => {
   const [content, setContent] = useState<DisplayContent | null>(initialState)
   const [isConnected, setIsConnected] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
@@ -100,7 +107,7 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
 
     const connect = () => {
       if (cancelled) return
-      const wsUrl = backendWs('/api/display/ws', channel, 'display')
+      const wsUrl = backendWs('/api/display/ws', channel, role)
 
       console.log('Connecting to WebSocket:', wsUrl)
       const ws = new WebSocket(wsUrl)
@@ -202,7 +209,7 @@ export const useWebSocket = (initialState: DisplayContent | null, channel: numbe
         wsRef.current.close()
       }
     }
-  }, [channel])
+  }, [channel, role])
 
   const clearContent = useCallback(() => {
     setContent(null)
