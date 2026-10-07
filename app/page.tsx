@@ -34,9 +34,17 @@ function DisplayInner() {
   const { isFullscreen: fullscreenToggle, toggleFullscreen } = useFullscreen()
   const isFullscreen = fullscreenToggle || !isLive
 
-  // 녹화 창은 이 제목으로 서버 PC 의 ffmpeg 가 찾아 찍는다 (app/services/screen_recorder.py)
+  // 녹화 창은 이 제목으로 서버 PC 의 ffmpeg 가 찾아 찍는다 (서버 app/services/screen_recorder.py).
+  // Next 가 메타데이터 제목(ONAIR Display)을 다시 쓸 수 있어 계속 맞춰 둔다
   useEffect(() => {
-    if (isRecorder) document.title = `ONAIR REC CH${channel}`
+    if (!isRecorder) return
+    const want = `ONAIR REC CH${channel}`
+    const apply = () => {
+      if (document.title !== want) document.title = want
+    }
+    apply()
+    const timer = setInterval(apply, 500)
+    return () => clearInterval(timer)
   }, [isRecorder, channel])
 
   const handleMediaEnded = useCallback(() => {
