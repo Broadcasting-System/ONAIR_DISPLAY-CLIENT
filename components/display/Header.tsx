@@ -67,7 +67,7 @@ export const Header = ({ onFullscreen }: HeaderProps) => {
             fontSize: "20px",
           }}
         >
-          전체 화면 (F)
+          전체 화면
         </span>
       </button>
     </header>

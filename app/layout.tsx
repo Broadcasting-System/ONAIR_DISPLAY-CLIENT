@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ONAIR Display",
-  description: "BSSM Broadcast Remote Control - Display Client",
+  description: "BSSM Broadcast Display",
 };
 
 export default function RootLayout({
