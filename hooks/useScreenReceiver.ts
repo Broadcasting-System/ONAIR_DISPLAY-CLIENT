@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { backendWs } from '@/lib/backend'
+import { getIceServers } from '@/lib/ice'
 
 type Signal = {
   command: 'webrtc'
@@ -11,9 +12,6 @@ type Signal = {
   fromPeer?: string
 }
 
-const RTC_CONFIG: RTCConfiguration = {
-  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-}
 
 /** 송출(프로젝터)·녹화 창 측 화면 공유 수신기.
  *  전용 시그널링 WS로 컨트롤의 offer를 받아 answer하고, 받은 MediaStream을 반환.
@@ -55,7 +53,9 @@ export function useScreenReceiver(channel: number = 1) {
     const handleOffer = async (sdp: RTCSessionDescriptionInit, fromPeer?: string) => {
       teardownPc() // 새 공유 세션이면 기존 연결 정리 후 재협상
       senderRef.current = fromPeer
-      const pc = new RTCPeerConnection(RTC_CONFIG)
+      const iceServers = await getIceServers()
+      if (closed || senderRef.current !== fromPeer) return // 기다리는 사이 다른 공유가 왔거나 화면을 닫았다
+      const pc = new RTCPeerConnection({ iceServers })
       pcRef.current = pc
       pc.onicecandidate = (e) => {
         if (e.candidate)
