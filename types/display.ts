@@ -1,4 +1,21 @@
-export type ContentType = 'image' | 'video' | 'presentation' | 'audio' | 'standby' | 'screen' | 'timer' | 'youtube'
+export type ContentType = 'image' | 'video' | 'presentation' | 'audio' | 'standby' | 'screen' | 'timer' | 'youtube' | 'switch'
+
+/** 스위처 소스 — 서버 app/services/switcher.py 와 같은 모양 */
+export type SwitchSource =
+  | { kind: 'share'; id: string; name: string }
+  | { kind: 'video'; url: string; fileId?: string; name: string }
+  | { kind: 'image'; url: string; fileId?: string; name: string }
+  | { kind: 'youtube'; videoId: string; name: string }
+  | { kind: 'timer'; durationSec: number; mode: 'down' | 'up'; label: string; name: string }
+
+export interface SwitchSlot {
+  source: SwitchSource | null
+  mute: boolean
+  volume: number // 0..100
+  startedAt: number // ms, 이 칸 소스가 바뀐 서버 시각
+}
+
+export type SwitchLayout = 'one' | 'two' | 'four' | 'pip'
 
 export interface Playback {
   playing: boolean
@@ -37,6 +54,11 @@ export interface DisplayContent {
   mode?: 'down' | 'up'
   // 유튜브(type==='youtube')
   videoId?: string
+  // 화면 공유(type==='screen') — 어느 소스를 띄울지 (없으면 가장 최근)
+  source?: string
+  // 스위처(type==='switch')
+  layout?: SwitchLayout
+  slots?: SwitchSlot[]
 }
 
 export interface WebSocketMessage {
@@ -55,4 +77,7 @@ export interface WebSocketMessage {
   durationSec?: number
   mode?: 'down' | 'up'
   videoId?: string
+  source?: string
+  layout?: SwitchLayout
+  slots?: SwitchSlot[]
 }

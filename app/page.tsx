@@ -30,7 +30,7 @@ function DisplayInner() {
   const [armedByClick, setIsArmed] = useState(false)
   const isArmed = armedByClick || !isLive
   const { content, clearContent } = useWebSocket(null, channel, role)
-  const { stream: screenStream } = useScreenReceiver(channel)
+  const { stream: screenStream, streams: screenStreams } = useScreenReceiver(channel)
   const { isFullscreen: fullscreenToggle, toggleFullscreen } = useFullscreen()
   const isFullscreen = fullscreenToggle || !isLive
 
@@ -78,6 +78,7 @@ function DisplayInner() {
         isFullscreen={isFullscreen}
         isArmed={isArmed}
         screenStream={screenStream}
+        screenStreams={screenStreams}
       />
     </main>
   )

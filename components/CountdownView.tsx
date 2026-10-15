@@ -31,7 +31,8 @@ export function CountdownView({
   label,
   color = '#ffffff',
   sizeVw = 22,
-}: CountdownProps) {
+  unit = 'vw',
+}: CountdownProps & { unit?: 'vw' | 'cqw' }) {
   const [now, setNow] = useState<number>(() => Date.now())
 
   useEffect(() => {
@@ -49,7 +50,7 @@ export function CountdownView({
       {label ? (
         <div
           className="font-mbc font-semibold tracking-tight"
-          style={{ fontSize: `${Math.max(3, sizeVw * 0.22)}vw`, color }}
+          style={{ fontSize: `${Math.max(3, sizeVw * 0.22)}${unit}`, color }}
         >
           {label}
         </div>
@@ -58,7 +59,7 @@ export function CountdownView({
         className={done ? 'animate-pulse' : undefined}
         style={{
           fontFamily: 'var(--font-orbitron, monospace)',
-          fontSize: `${sizeVw}vw`,
+          fontSize: `${sizeVw}${unit}`,
           fontWeight: 800,
           lineHeight: 1,
           color: done ? '#ff4d4d' : color,

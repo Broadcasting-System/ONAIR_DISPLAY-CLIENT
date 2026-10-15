@@ -90,6 +90,9 @@ export const useWebSocket = (
               durationSec: data.durationSec,
               mode: data.mode,
               videoId: data.videoId,
+              source: data.source,
+              layout: data.layout,
+              slots: data.slots,
             })
           }
         } else {
@@ -166,6 +169,9 @@ export const useWebSocket = (
                 JSON.stringify(prev.playback) === JSON.stringify(message.playback) &&
                 prev.slideIndex === message.slideIndex &&
                 prev.videoId === message.videoId &&
+                prev.source === message.source &&
+                prev.layout === message.layout &&
+                JSON.stringify(prev.slots) === JSON.stringify(message.slots) &&
                 JSON.stringify(prev.overlay) === JSON.stringify(message.overlay)
               ) {
                 console.log('Redundant content update ignored')
@@ -190,6 +196,9 @@ export const useWebSocket = (
                 durationSec: message.durationSec,
                 mode: message.mode,
                 videoId: message.videoId,
+                source: message.source,
+                layout: message.layout,
+                slots: message.slots,
               }
             })
           }

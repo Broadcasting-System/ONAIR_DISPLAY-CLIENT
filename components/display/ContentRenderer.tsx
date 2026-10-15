@@ -5,6 +5,7 @@ import { DisplayContent, Playback, ImageOverlay } from '@/types/display'
 import { StandbyScreen } from './StandbyScreen'
 import { CountdownView } from '@/components/CountdownView'
 import { YouTubePlayer } from './YouTubePlayer'
+import { SwitchView } from './SwitchView'
 import { resolveMediaUrl } from '@/lib/backend'
 
 /** 이미지 위 텍스트 오버레이 — 부모(16:9 박스)의 컨테이너 너비(cqw) 기준으로 크기 결정 */
@@ -58,6 +59,8 @@ interface ContentRendererProps {
   isFullscreen: boolean
   isArmed: boolean
   screenStream?: MediaStream | null
+  /** 소스별 화면 공유 스트림 (외부 화면 share:<id>, 컨트롤 screen) — 스위처·특정 외부 화면 송출용 */
+  screenStreams?: Record<string, MediaStream>
 }
 
 /** 화면 공유(WebRTC) 수신 스트림을 전체화면 비디오로 렌더 (소리 포함) */
@@ -108,7 +111,7 @@ const posFromPlayback = (pb?: Playback | null): number | null => {
     : Math.max(0, pb.offset)
 }
 
-export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, screenStream }: ContentRendererProps) => {
+export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, screenStream, screenStreams }: ContentRendererProps) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(() => calculateSlideIndex(content))
   const [videoState, setVideoState] = useState<VideoState>('loading')
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -364,7 +367,13 @@ export const ContentRenderer = ({ content, onEnded, isFullscreen, isArmed, scree
   }
 
   if (content.type === 'screen') {
-    return <ScreenView stream={screenStream} />
+    // 허용한 그 외부 화면 — 아직 안 붙었으면 가장 최근에 붙은 화면
+    const picked = content.source ? screenStreams?.[content.source] : undefined
+    return <ScreenView stream={picked ?? screenStream} />
+  }
+
+  if (content.type === 'switch') {
+    return <SwitchView layout={content.layout} slots={content.slots} streams={screenStreams ?? {}} />
   }
 
   if (content.type === 'timer') {
