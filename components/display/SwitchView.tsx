@@ -8,7 +8,9 @@ import { resolveMediaUrl } from '@/lib/backend'
 /** 스위처 송출 — 칸마다 소스를 그리고 칸마다 소리(음소거·볼륨)를 따로 맞춘다.
  *  외부 화면은 이 화면이 WebRTC 로 직접 받은 streams 에서 찾는다 (share:<요청 id>). */
 
-function StreamSlot({ stream, mute, volume }: { stream?: MediaStream; mute: boolean; volume: number }) {
+type Fit = 'contain' | 'cover'
+
+function StreamSlot({ stream, mute, volume, fit }: { stream?: MediaStream; mute: boolean; volume: number; fit: Fit }) {
   const ref = useRef<HTMLVideoElement>(null)
   useEffect(() => {
     const v = ref.current
@@ -24,19 +26,27 @@ function StreamSlot({ stream, mute, volume }: { stream?: MediaStream; mute: bool
   }, [mute, volume])
   return (
     <>
-      <video ref={ref} autoPlay playsInline className="absolute inset-0 h-full w-full object-contain" />
+      <video ref={ref} autoPlay playsInline className="absolute inset-0 h-full w-full" style={{ objectFit: fit }} />
       {!stream && <SlotNote text="연결 중" />}
     </>
   )
 }
 
-function VideoSlot({ url, startedAt, mute, volume }: { url: string; startedAt: number; mute: boolean; volume: number }) {
+function VideoSlot({ url, startedAt, mute, volume, fit, loop }: {
+  url: string
+  startedAt: number
+  mute: boolean
+  volume: number
+  fit: Fit
+  loop: boolean
+}) {
   const ref = useRef<HTMLVideoElement>(null)
-  // 서버 시각 기준 같은 자리에서 — 송출 화면·녹화 창·미리보기가 맞게 (반복 재생)
+  // 서버 시각 기준 같은 자리에서 — 송출 화면·녹화 창·미리보기가 맞게 (반복이면 길이로 나눈 나머지, 아니면 끝에서 멈춤)
   const seek = () => {
     const v = ref.current
     if (!v || !v.duration || !isFinite(v.duration)) return
-    const want = ((Date.now() - startedAt) / 1000) % v.duration
+    const el = Math.max(0, (Date.now() - startedAt) / 1000)
+    const want = loop ? el % v.duration : Math.min(el, v.duration)
     if (Math.abs(v.currentTime - want) > 1.5) v.currentTime = want
   }
   useEffect(() => {
@@ -55,10 +65,11 @@ function VideoSlot({ url, startedAt, mute, volume }: { url: string; startedAt: n
       ref={ref}
       src={resolveMediaUrl(url)}
       autoPlay
-      loop
+      loop={loop}
       playsInline
       onLoadedMetadata={seek}
-      className="absolute inset-0 h-full w-full object-contain"
+      className="absolute inset-0 h-full w-full"
+      style={{ objectFit: fit }}
     />
   )
 }
@@ -76,18 +87,22 @@ function SlotNote({ text }: { text: string }) {
 function Slot({ slot, streams }: { slot: SwitchSlot; streams: Record<string, MediaStream> }) {
   const src = slot.source
   const { mute, volume, startedAt } = slot
+  // 칸마다 화면 맞춤·꽉 채움, 영상 반복 (예전 서버는 안 보내므로 기본값)
+  const fit: Fit = slot.fit === 'cover' ? 'cover' : 'contain'
+  const loop = slot.loop !== false
   if (!src) return null
-  if (src.kind === 'share') return <StreamSlot stream={streams[`share:${src.id}`]} mute={mute} volume={volume} />
-  if (src.kind === 'video') return <VideoSlot key={startedAt} url={src.url} startedAt={startedAt} mute={mute} volume={volume} />
+  if (src.kind === 'share') return <StreamSlot stream={streams[`share:${src.id}`]} mute={mute} volume={volume} fit={fit} />
+  if (src.kind === 'video')
+    return <VideoSlot key={startedAt} url={src.url} startedAt={startedAt} mute={mute} volume={volume} fit={fit} loop={loop} />
   if (src.kind === 'image')
-    return <img src={resolveMediaUrl(src.url)} alt="" className="absolute inset-0 h-full w-full object-contain" />
+    return <img src={resolveMediaUrl(src.url)} alt="" className="absolute inset-0 h-full w-full" style={{ objectFit: fit }} />
   if (src.kind === 'youtube')
     return (
       <div className="absolute inset-0">
         <YouTubePlayer
           key={`${src.videoId}-${startedAt}`}
           videoId={src.videoId}
-          playback={{ playing: true, anchorTs: startedAt, offset: 0, volume: volume / 100, muted: mute, loop: true }}
+          playback={{ playing: true, anchorTs: startedAt, offset: 0, volume: volume / 100, muted: mute, loop }}
         />
       </div>
     )

@@ -13,6 +13,8 @@ export interface SwitchSlot {
   mute: boolean
   volume: number // 0..100
   startedAt: number // ms, 이 칸 소스가 바뀐 서버 시각
+  fit?: 'contain' | 'cover' // 화면 맞춤 | 꽉 채움 (없으면 맞춤)
+  loop?: boolean // 영상 반복 (없으면 반복)
 }
 
 export type SwitchLayout = 'one' | 'two' | 'four' | 'pip'
