@@ -8,6 +8,7 @@ import { EntryOverlay } from '@/components/display/EntryOverlay'
 import { useFullscreen } from '@/hooks/useFullscreen'
 import { DisplayRole, useWebSocket } from '@/hooks/useWebSocket'
 import { useScreenReceiver } from '@/hooks/useScreenReceiver'
+import { useLiveAudio } from '@/hooks/useLiveAudio'
 import { backendBase } from '@/lib/backend'
 
 const MAX_CHANNELS = 5
@@ -26,6 +27,10 @@ function DisplayInner() {
   }, [params])
   const isLive = role === 'display'
   const isRecorder = role === 'recorder'
+  // live 중계 창 — 서버 PC 가 학생용 live 로 내보내려고 띄운 녹화 창 (서버 app/services/live_stream.py)
+  const isStream = isRecorder && params.get('live') === '1'
+  // 소리를 탭째로 잡는 중계 창(audio=tab)은 잡기가 시작돼야 화면을 그린다 — 그 전에는 소리가 스피커로 샐 수 있다
+  const audioArmed = useLiveAudio(channel, isStream ? params.get('audioKey') : null, isStream ? params.get('audio') : null)
 
   const [armedByClick, setIsArmed] = useState(false)
   const isArmed = armedByClick || !isLive
@@ -35,17 +40,18 @@ function DisplayInner() {
   const isFullscreen = fullscreenToggle || !isLive
 
   // 녹화 창은 이 제목으로 서버 PC 의 ffmpeg 가 찾아 찍는다 (서버 app/services/screen_recorder.py).
+  // live 중계 창은 'ONAIR LIVE CHn' — 같은 채널을 녹화하면서 중계해도 창이 섞이지 않게.
   // Next 가 메타데이터 제목(ONAIR Display)을 다시 쓸 수 있어 계속 맞춰 둔다
   useEffect(() => {
     if (!isRecorder) return
-    const want = `ONAIR REC CH${channel}`
+    const want = `ONAIR ${isStream ? 'LIVE' : 'REC'} CH${channel}`
     const apply = () => {
       if (document.title !== want) document.title = want
     }
     apply()
     const timer = setInterval(apply, 500)
     return () => clearInterval(timer)
-  }, [isRecorder, channel])
+  }, [isRecorder, isStream, channel])
 
   const handleMediaEnded = useCallback(() => {
     clearContent()
@@ -73,7 +79,7 @@ function DisplayInner() {
       {!isArmed && <EntryOverlay onEnter={handleEnter} />}
       {!isFullscreen && <Header onFullscreen={toggleFullscreen} />}
       <ContentRenderer
-        content={content}
+        content={audioArmed ? content : null}
         onEnded={handleMediaEnded}
         isFullscreen={isFullscreen}
         isArmed={isArmed}
