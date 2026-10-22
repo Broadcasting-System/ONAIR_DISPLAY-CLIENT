@@ -33,13 +33,14 @@ const hasTurn = (s: RTCIceServer) =>
  *  - 보내는 쪽이 (다시) 붙어 hello 하면 그쪽에만 hello 로 답한다
  *  - answer·ice 는 offer 를 보낸 쪽(fromPeer)에게만 (to)
  *  - stream 은 가장 최근에 붙은 것 (한 화면 공유 'screen' 송출용), streams 는 소스별 */
-export function useScreenReceiver(channel: number = 1) {
+export function useScreenReceiver(channel: number = 1, enabled: boolean = true) {
   const [streams, setStreams] = useState<Record<string, MediaStream>>({})
   const [latest, setLatest] = useState<string | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const peers = useRef(new Map<string, Peer>())
 
   useEffect(() => {
+    if (!enabled) return
     let reconnectTimer: ReturnType<typeof setTimeout>
     let closed = false
     const map = peers.current
@@ -148,7 +149,8 @@ export function useScreenReceiver(channel: number = 1) {
       ws.onmessage = (ev) => {
         let m: Signal
         try { m = JSON.parse(ev.data) } catch { return }
-        if (m?.command !== 'webrtc' || m.from === 'display') return
+        // 실시간 미러(서버 PC 미러 창)는 미러로 연 화면만 받는다 (hooks/useMirror.ts)
+        if (m?.command !== 'webrtc' || m.from === 'display' || m.source === 'mirror') return
         const peer = m.fromPeer ?? ''
         if (m.kind === 'offer' && m.sdp) handleOffer(m.sdp, peer, m.source || 'screen')
         else if (m.kind === 'ice' && m.candidate) handleIce(m.candidate, peer)
@@ -179,7 +181,7 @@ export function useScreenReceiver(channel: number = 1) {
       for (const k of [...map.keys()]) dropPeer(k)
       if (wsRef.current) { try { wsRef.current.close() } catch {} }
     }
-  }, [channel])
+  }, [channel, enabled])
 
   return { stream: latest ? streams[latest] ?? null : null, streams }
 }

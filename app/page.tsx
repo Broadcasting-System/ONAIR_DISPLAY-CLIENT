@@ -9,6 +9,8 @@ import { useFullscreen } from '@/hooks/useFullscreen'
 import { DisplayRole, useWebSocket } from '@/hooks/useWebSocket'
 import { useScreenReceiver } from '@/hooks/useScreenReceiver'
 import { useLiveAudio } from '@/hooks/useLiveAudio'
+import { useMirrorReceiver, useMirrorSender } from '@/hooks/useMirror'
+import { MirrorView } from '@/components/display/MirrorView'
 import { backendBase } from '@/lib/backend'
 
 const MAX_CHANNELS = 5
@@ -31,11 +33,16 @@ function DisplayInner() {
   const isStream = isRecorder && params.get('live') === '1'
   // 소리를 탭째로 잡는 중계 창(audio=tab)은 잡기가 시작돼야 화면을 그린다 — 그 전에는 소리가 스피커로 샐 수 있다
   const audioArmed = useLiveAudio(channel, isStream ? params.get('audioKey') : null, isStream ? params.get('audio') : null)
+  // 실시간 미러 — 서버 PC 미러 창(mirror=send)이 이 탭을 보내고, 다른 장소의 송출 화면(mirror=1)이 받아 튼다 (hooks/useMirror.ts)
+  const isMirrorSend = isRecorder && params.get('mirror') === 'send'
+  const isMirrorView = role === 'display' && params.get('mirror') === '1'
+  useMirrorSender(channel, isMirrorSend)
+  const mirrorStream = useMirrorReceiver(channel, isMirrorView)
 
   const [armedByClick, setIsArmed] = useState(false)
   const isArmed = armedByClick || !isLive
   const { content, clearContent } = useWebSocket(null, channel, role)
-  const { stream: screenStream, streams: screenStreams } = useScreenReceiver(channel)
+  const { stream: screenStream, streams: screenStreams } = useScreenReceiver(channel, !isMirrorView)
   const { isFullscreen: fullscreenToggle, toggleFullscreen } = useFullscreen()
   const isFullscreen = fullscreenToggle || !isLive
 
@@ -44,14 +51,14 @@ function DisplayInner() {
   // Next 가 메타데이터 제목(ONAIR Display)을 다시 쓸 수 있어 계속 맞춰 둔다
   useEffect(() => {
     if (!isRecorder) return
-    const want = `ONAIR ${isStream ? 'LIVE' : 'REC'} CH${channel}`
+    const want = `ONAIR ${isStream ? 'LIVE' : isMirrorSend ? 'MIRROR' : 'REC'} CH${channel}`
     const apply = () => {
       if (document.title !== want) document.title = want
     }
     apply()
     const timer = setInterval(apply, 500)
     return () => clearInterval(timer)
-  }, [isRecorder, isStream, channel])
+  }, [isRecorder, isStream, isMirrorSend, channel])
 
   const handleMediaEnded = useCallback(() => {
     clearContent()
@@ -78,6 +85,9 @@ function DisplayInner() {
     >
       {!isArmed && <EntryOverlay onEnter={handleEnter} />}
       {!isFullscreen && <Header onFullscreen={toggleFullscreen} />}
+      {isMirrorView ? (
+        <MirrorView stream={mirrorStream} isArmed={isArmed} />
+      ) : (
       <ContentRenderer
         content={audioArmed ? content : null}
         onEnded={handleMediaEnded}
@@ -86,6 +96,7 @@ function DisplayInner() {
         screenStream={screenStream}
         screenStreams={screenStreams}
       />
+      )}
     </main>
   )
 }
