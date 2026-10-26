@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { DisplayContent, WebSocketMessage, ContentType } from '@/types/display'
 import { backendBase, backendWs } from '@/lib/backend'
+import { useReconnectingSocket } from '@/lib/reconnectingSocket'
 
 /** role: display = 실제 송출 화면(LIVE 로 센다) · control = 미리보기 · recorder = 서버 PC 의 화면 녹화 창 */
 export type DisplayRole = 'display' | 'control' | 'recorder'
@@ -11,55 +12,15 @@ export const useWebSocket = (
   role: DisplayRole = 'display',
 ) => {
   const [content, setContent] = useState<DisplayContent | null>(initialState)
-  const [isConnected, setIsConnected] = useState(false)
-  const wsRef = useRef<WebSocket | null>(null)
+  // 소켓이 먼저 상태를 줬으면 늦게 온 초기 fetch 결과로 덮어쓰지 않는다
+  const gotSocketState = useRef(false)
 
   useEffect(() => {
-    let reconnectTimer: NodeJS.Timeout
-    // effect가 정리된 뒤(채널 변경·언마운트) 옛 소켓의 onclose가 옛 채널로 재연결하지 않게
+    // effect가 정리된 뒤(채널 변경·언마운트) 늦게 온 옛 채널 fetch 결과를 버린다
+    // (옛 채널 소켓이 다시 붙지 않게 막는 것은 useReconnectingSocket 이 한다)
     let cancelled = false
-    // 소켓이 먼저 상태를 줬으면 늦게 온 초기 fetch 결과로 덮어쓰지 않는다
-    let gotSocketState = false
+    gotSocketState.current = false
     const BASE = backendBase()
-
-    const resolveUrls = (data: Partial<WebSocketMessage>) => {
-      const type = data.type as ContentType | undefined;
-      const { url, urls, fileId, hlsUrl } = data
-
-      // hlsUrl이 명시적으로 주어지면 최우선으로 원본 재생 경로로 취급
-      let finalUrl = hlsUrl || url
-      let finalUrls = urls
-      let fallbackUrl: string | undefined
-
-      const streamFromFileId = (t: string) => {
-        if (!fileId) return undefined
-        const name = fileId.startsWith('file_') ? fileId.slice(5) : fileId
-        return `/api/files/stream/${t}/${name}`
-      }
-
-      if (type === 'video' || type === 'image' || type === 'audio') {
-        if (!finalUrl && fileId) {
-          finalUrl = streamFromFileId(type)
-        }
-        // 비디오: 직접 스트림(mp4)을 HLS 폴백으로 준비
-        if (type === 'video') {
-          const direct = streamFromFileId('video')
-          if (direct && direct !== finalUrl) fallbackUrl = direct
-        }
-        if (finalUrl && !finalUrl.startsWith('http')) {
-          finalUrl = `${BASE}${finalUrl}`
-        }
-        if (fallbackUrl && !fallbackUrl.startsWith('http')) {
-          fallbackUrl = `${BASE}${fallbackUrl}`
-        }
-      }
-
-      if (type === 'presentation' && finalUrls) {
-        finalUrls = finalUrls.map((u: string) => u.startsWith('http') ? u : `${BASE}${u}`)
-      }
-
-      return { ...data, url: finalUrl, urls: finalUrls, fallbackUrl }
-    }
 
     const statusUrl =
       channel > 1
@@ -73,7 +34,7 @@ export const useWebSocket = (
         if (res.ok) {
           const data = await res.json()
           console.log('Initial status received:', data)
-          if (cancelled || gotSocketState) return
+          if (cancelled || gotSocketState.current) return
           if (data && data.type && data.type !== 'standby') {
             const resolved = resolveUrls(data)
             setContent({
@@ -106,45 +67,20 @@ export const useWebSocket = (
 
     fetchInitialStatus()
 
-    let pingTimer: ReturnType<typeof setInterval> | undefined
+    return () => {
+      cancelled = true
+    }
+  }, [channel, role])
 
-    const connect = () => {
-      if (cancelled) return
-      const wsUrl = backendWs('/api/display/ws', channel, role)
-
-      console.log('Connecting to WebSocket:', wsUrl)
-      const ws = new WebSocket(wsUrl)
-      wsRef.current = ws
-
-      ws.onopen = () => {
-        console.log('WebSocket connected')
-        setIsConnected(true)
-        // 헬스체크용 하트비트 — 송출 화면 생존 신호
-        if (pingTimer) clearInterval(pingTimer)
-        pingTimer = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping' }))
-        }, 5000)
-      }
-      ws.onclose = () => {
-        if (pingTimer) clearInterval(pingTimer)
-        if (cancelled) return
-        console.warn('WebSocket disconnected, reconnecting...')
-        setIsConnected(false)
-        reconnectTimer = setTimeout(connect, 3000)
-      }
-      ws.onerror = () => {
-        // 연결 실패는 onclose에서 자동 재연결되므로 경고 수준으로만 남김
-        console.warn('WebSocket 연결 재시도 예정')
-        ws.close()
-      }
-
-      ws.onmessage = (event) => {
-        if (cancelled) return
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data)
+  // 끊기면 지수 백오프+지터로 다시 붙는다. 붙자마자 서버가 지금 상태(대기면 standby)를 보내 맞춘다 (lib/reconnectingSocket)
+  const { status, staleSince } = useReconnectingSocket(
+    backendWs('/api/display/ws', channel, role),
+    {
+      onMessage: (parsed) => {
+          const message = parsed as WebSocketMessage
           console.log('WS message received:', message)
           if (message.command === 'display') {
-            gotSocketState = true
+            gotSocketState.current = true
             if (message.type === 'standby') {
               setContent(null)
               return
@@ -202,27 +138,56 @@ export const useWebSocket = (
               }
             })
           }
-        } catch (err) {
-          console.error('Failed to parse WebSocket message', err)
-        }
-      }
-    }
-
-    connect()
-
-    return () => {
-      cancelled = true
-      clearTimeout(reconnectTimer)
-      if (pingTimer) clearInterval(pingTimer)
-      if (wsRef.current) {
-        wsRef.current.close()
-      }
-    }
-  }, [channel, role])
+      },
+    },
+    // 헬스체크용 하트비트 — 송출 화면 생존 신호
+    { heartbeat: { everyMs: 5000, message: { type: 'ping' } } },
+  )
 
   const clearContent = useCallback(() => {
     setContent(null)
   }, [])
 
-  return { content, isConnected, clearContent }
+  // staleSince — 끊긴 시각. 그동안 화면은 서버와 다를 수 있다 (송출 화면 자체에는 표시하지 않는다: 전교에 보이는 화면이라)
+  return { content, isConnected: status === 'open', status, staleSince, clearContent }
+}
+
+function resolveUrls(data: Partial<WebSocketMessage>) {
+  const BASE = backendBase()
+  const type = data.type as ContentType | undefined;
+  const { url, urls, fileId, hlsUrl } = data
+
+  // hlsUrl이 명시적으로 주어지면 최우선으로 원본 재생 경로로 취급
+  let finalUrl = hlsUrl || url
+  let finalUrls = urls
+  let fallbackUrl: string | undefined
+
+  const streamFromFileId = (t: string) => {
+    if (!fileId) return undefined
+    const name = fileId.startsWith('file_') ? fileId.slice(5) : fileId
+    return `/api/files/stream/${t}/${name}`
+  }
+
+  if (type === 'video' || type === 'image' || type === 'audio') {
+    if (!finalUrl && fileId) {
+      finalUrl = streamFromFileId(type)
+    }
+    // 비디오: 직접 스트림(mp4)을 HLS 폴백으로 준비
+    if (type === 'video') {
+      const direct = streamFromFileId('video')
+      if (direct && direct !== finalUrl) fallbackUrl = direct
+    }
+    if (finalUrl && !finalUrl.startsWith('http')) {
+      finalUrl = `${BASE}${finalUrl}`
+    }
+    if (fallbackUrl && !fallbackUrl.startsWith('http')) {
+      fallbackUrl = `${BASE}${fallbackUrl}`
+    }
+  }
+
+  if (type === 'presentation' && finalUrls) {
+    finalUrls = finalUrls.map((u: string) => u.startsWith('http') ? u : `${BASE}${u}`)
+  }
+
+  return { ...data, url: finalUrl, urls: finalUrls, fallbackUrl }
 }
