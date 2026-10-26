@@ -1,0 +1,33 @@
+# 송출 화면 테스트 — main 으로 가는 PR·푸시마다 단위 테스트·린트·타입 검사
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: 단위 테스트 (Vitest)
+        run: npm test
+
+      - name: 린트
+        run: npm run lint
+
+      - name: 타입 검사
+        run: npx tsc --noEmit
